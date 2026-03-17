@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TASK MANAGER</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --g-bright: #00ff41;
+    --g-mid:    #00cc33;
+    --g-dim:    #007a1f;
+    --g-dimmer: #004d13;
+    --g-bg:     #000000;
+    --g-panel:  #020d02;
+    --g-hover:  #001a05;
+    --g-border: #003d0f;
+    --g-warn:   #ffcc00;
+    --g-err:    #ff3333;
+    --mono: 'VT323', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--g-bg); color: var(--g-bright); font-family: var(--mono); min-height: 100vh; }
+  ::selection { background: var(--g-bright); color: #000; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #000; }
+  ::-webkit-scrollbar-thumb { background: var(--g-border); }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7) sepia(1) saturate(5) hue-rotate(70deg); cursor: pointer;
+  }
+
+  @keyframes scanline { 0% { transform: translateY(-4px); } 100% { transform: translateY(100vh); } }
+  @keyframes flicker { 0%,100%{opacity:1;}92%{opacity:1;}93%{opacity:.96;}94%{opacity:1;} }
+  @keyframes blink { 0%,49%{opacity:1;}50%,100%{opacity:0;} }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #scanlines {
+    position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
+    animation: flicker 8s infinite;
+  }
+  #scanline-sweep {
+    position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+    background: linear-gradient(transparent,rgba(0,255,65,0.12),transparent);
+    animation: scanline 7s linear infinite; pointer-events: none; z-index: 9998;
+  }
+  .cursor { animation: blink 1s step-end infinite; }
+
+  /* Sync indicator */
+  #sync-status {
+    font-size: 12px; letter-spacing: 1px; padding: 2px 8px;
+    border: 1px solid var(--g-border); color: var(--g-dimmer);
+    display: inline-block; min-width: 130px; text-align: center;
+  }
+  #sync-status.syncing { color: var(--g-warn); border-color: rgba(255,204,0,0.4); }
+  #sync-status.ok      { color: var(--g-mid);  border-color: rgba(0,204,51,0.4); }
+  #sync-status.err     { color: var(--g-err);  border-color: rgba(255,51,51,0.4); }
+  #sync-spinner {
+    display: none; width: 10px; height: 10px;
+    border: 2px solid transparent; border-top-color: var(--g-warn);
+    border-radius: 50%; animation: spin 0.6s linear infinite;
+    vertical-align: middle; margin-right: 4px;
+  }
+  #sync-status.syncing #sync-spinner { display: inline-block; }
+
+  /* Layout */
+  #app { max-width: 720px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  /* Header */
+  #header {
+    border-bottom: 1px solid var(--g-mid); padding-bottom: 10px; margin-bottom: 22px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  #header h1 { font-size: 32px; letter-spacing: 4px; color: var(--g-bright); }
+  #header .sub { font-size: 14px; color: var(--g-dim); letter-spacing: 2px; margin-top: 2px; }
+  .clock-col { font-size: 13px; color: var(--g-dimmer); letter-spacing: 1px; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+
+  /* Panel */
+  .panel { border: 1px solid var(--g-border); background: var(--g-panel); margin-bottom: 20px; box-shadow: 0 0 16px rgba(0,255,65,0.04); }
+  .panel-label { font-size: 13px; color: var(--g-dim); letter-spacing: 2px; padding: 8px 14px; border-bottom: 1px solid var(--g-border); }
+
+  /* Inputs */
+  input[type="text"],input[type="date"],textarea,select {
+    background: transparent; border: none; outline: none;
+    color: var(--g-bright); font-family: var(--mono); font-size: 17px;
+  }
+  input[type="text"]::placeholder,textarea::placeholder { color: var(--g-dimmer); }
+
+  .field-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--g-border); }
+  .field-row .prompt { color: var(--g-dim); flex-shrink: 0; }
+  .field-row input[type="text"] { flex: 1; font-size: 19px; }
+  .meta-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; flex-wrap: wrap; }
+
+  .date-group { display: flex; align-items: center; gap: 6px; border: 1px solid var(--g-border); padding: 4px 8px; }
+  .date-group label { font-size: 13px; color: var(--g-dim); letter-spacing: 1px; white-space: nowrap; }
+  .date-group input[type="date"] { font-size: 14px; color: var(--g-mid); width: 130px; }
+
+  select { border: 1px solid var(--g-border); padding: 4px 8px; color: var(--g-mid); font-size: 15px; cursor: pointer; }
+  select option { background: #000; color: var(--g-mid); }
+
+  textarea {
+    display: block; width: 100%; border: none; border-top: 1px solid var(--g-border);
+    padding: 10px 14px; min-height: 72px; resize: vertical; font-size: 15px; color: var(--g-mid); line-height: 1.6;
+  }
+
+  /* Buttons */
+  .btn {
+    background: transparent; border: 1px solid var(--g-border); color: var(--g-dim);
+    font-family: var(--mono); font-size: 14px; padding: 4px 12px;
+    cursor: pointer; letter-spacing: 1px; transition: all 0.1s;
+  }
+  .btn:hover { border-color: var(--g-mid); color: var(--g-bright); filter: brightness(1.1); }
+  .btn.active { border-color: var(--g-mid); color: var(--g-bright); background: rgba(0,255,65,0.05); }
+  .btn.primary { border-color: var(--g-bright); color: var(--g-bright); letter-spacing: 2px; }
+  .btn.danger { border-color: rgba(255,51,51,0.3); color: var(--g-err); }
+  .btn.danger:hover { border-color: var(--g-err); }
+  .btn.success { border-color: rgba(0,255,65,0.4); color: var(--g-mid); }
+
+  /* Toolbar */
+  #toolbar { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  #cat-filters { margin-left: auto; display: flex; gap: 5px; flex-wrap: wrap; }
+
+  /* Task list */
+  #task-list-wrap { border: 1px solid var(--g-border); background: var(--g-panel); box-shadow: 0 0 20px rgba(0,255,65,0.03); }
+  .list-header {
+    display: grid; grid-template-columns: 18px 22px 1fr auto;
+    gap: 10px; padding: 5px 14px; border-bottom: 1px solid var(--g-border);
+    font-size: 12px; color: var(--g-dimmer); letter-spacing: 2px;
+  }
+
+  .task-row {
+    display: grid; grid-template-columns: 18px 22px 1fr auto;
+    gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--g-border);
+    align-items: start; transition: background 0.1s; cursor: default;
+  }
+  .task-row:last-child { border-bottom: none; }
+  .task-row:hover { background: var(--g-hover); box-shadow: inset 0 0 12px rgba(0,255,65,0.04); }
+  .task-row:hover .actions { opacity: 1; }
+  .task-row.drag-over { border-top: 2px solid var(--g-bright); }
+  .task-row.dragging { opacity: 0.35; }
+
+  .actions { opacity: 0; transition: opacity 0.1s; display: flex; gap: 4px; align-items: flex-start; padding-top: 2px; }
+
+  /* Drag handle */
+  .drag-handle {
+    cursor: grab; color: var(--g-dimmer); font-size: 16px; padding-top: 3px;
+    user-select: none; flex-shrink: 0; line-height: 1; touch-action: none;
+  }
+  .drag-handle:hover { color: var(--g-dim); }
+  .drag-handle:active { cursor: grabbing; }
+
+  /* Checkbox */
+  .check-box {
+    width: 20px; height: 20px; border: 1px solid var(--g-dimmer); background: transparent;
+    cursor: pointer; font-family: var(--mono); font-size: 14px; color: var(--g-bright);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+    transition: border-color 0.1s;
+  }
+  .check-box:hover { border-color: var(--g-mid); }
+  .check-box.checked { border-color: var(--g-mid); }
+
+  .task-title { font-size: 18px; color: var(--g-bright); line-height: 1.25; margin-bottom: 4px; letter-spacing: 0.3px; }
+  .task-title.done { text-decoration: line-through; text-decoration-color: var(--g-dim); color: var(--g-dimmer); }
+
+  .task-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+  .tag { border: 1px solid var(--g-border); color: var(--g-dim); padding: 0 6px; }
+  .due { color: var(--g-dimmer); }
+  .due.overdue { color: var(--g-err); }
+  .due.soon { color: var(--g-warn); }
+
+  /* Note preview inline */
+  .note-preview {
+    font-size: 13px; color: var(--g-dimmer); margin-top: 6px;
+    border-left: 2px solid var(--g-border); padding-left: 8px;
+    white-space: pre-wrap; word-break: break-word; line-height: 1.45;
+    font-family: var(--mono); letter-spacing: 0.3px;
+  }
+
+  .empty-state { padding: 40px; text-align: center; font-size: 18px; color: var(--g-dimmer); letter-spacing: 2px; }
+  #footer { margin-top: 14px; font-size: 12px; color: var(--g-dimmer); letter-spacing: 1px; }
+
+  /* Modals */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 2000; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--g-bg); border: 1px solid var(--g-mid); padding: 24px; width: min(500px,92vw); box-shadow: 0 0 40px rgba(0,255,65,0.12); max-height: 90vh; overflow-y: auto; }
+  .modal-title { font-size: 20px; color: var(--g-bright); letter-spacing: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--g-border); padding-bottom: 10px; }
+  #cat-list { max-height: 200px; overflow-y: auto; margin-bottom: 14px; }
+  .cat-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--g-border); font-size: 16px; color: var(--g-mid); }
+  .modal-input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .modal-input-row input { flex: 1; border: 1px solid var(--g-border); padding: 6px 10px; font-size: 16px; color: var(--g-bright); background: transparent; font-family: var(--mono); outline: none; }
+  .modal-input-row input::placeholder { color: var(--g-dimmer); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  #note-modal textarea { width: 100%; border: 1px solid var(--g-border); padding: 10px; min-height: 130px; resize: vertical; font-size: 15px; color: var(--g-mid); background: transparent; font-family: var(--mono); outline: none; line-height: 1.6; display: block; margin-bottom: 14px; }
+  #note-modal-subtitle { font-size: 14px; color: var(--g-dim); letter-spacing: 1px; margin-bottom: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* IO modal */
+  #io-status { font-size: 14px; letter-spacing: 1px; min-height: 20px; margin-bottom: 12px; padding: 6px 10px; border: 1px solid var(--g-border); color: var(--g-dim); display: none; }
+  #io-status.ok  { color: var(--g-bright); border-color: var(--g-mid); display: block; }
+  #io-status.err { color: var(--g-err); border-color: var(--g-err); display: block; }
+  .io-section { border: 1px solid var(--g-border); padding: 14px; margin-bottom: 14px; }
+  .io-section-title { font-size: 13px; color: var(--g-dim); letter-spacing: 2px; margin-bottom: 10px; }
+  .io-section p { font-size: 13px; color: var(--g-dimmer); letter-spacing: 1px; margin-bottom: 10px; line-height: 1.5; }
+  #import-file-label { display: inline-block; border: 1px solid var(--g-border); color: var(--g-dim); padding: 4px 14px; cursor: pointer; font-family: var(--mono); font-size: 14px; letter-spacing: 1px; transition: all 0.1s; }
+  #import-file-label:hover { border-color: var(--g-mid); color: var(--g-bright); }
+  #import-file { display: none; }
+  #import-filename { font-size: 13px; color: var(--g-dimmer); margin-top: 6px; letter-spacing: 1px; }
+
+  /* Setup modal */
+  #setup-modal .modal { border-color: var(--g-warn); }
+  #setup-modal .modal-title { color: var(--g-warn); }
+  #setup-key-input { width: 100%; border: 1px solid var(--g-border); padding: 8px 10px; font-size: 15px; color: var(--g-bright); background: transparent; font-family: var(--mono); outline: none; margin-bottom: 8px; letter-spacing: 1px; }
+  #setup-key-input::placeholder { color: var(--g-dimmer); }
+  .setup-note { font-size: 13px; color: var(--g-dimmer); letter-spacing: 1px; margin-bottom: 14px; line-height: 1.8; }
+  .setup-note a { color: var(--g-dim); }
+  #setup-error { color: var(--g-err); font-size: 13px; min-height: 18px; margin-bottom: 10px; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<div id="scanlines"></div>
+<div id="scanline-sweep"></div>
+
+<div id="app">
+  <div id="header">
+    <div>
+      <h1>██ TASK MANAGER <span class="cursor">█</span></h1>
+      <div class="sub" id="header-sub">JAY WARREN // 0 OPEN // 0 ARCHIVED</div>
+    </div>
+    <div class="clock-col">
+      <div id="clock">00:00:00</div>
+      <div id="sync-status">
+        <span id="sync-spinner"></span><span id="sync-text">OFFLINE</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">// NEW TASK INPUT</div>
+    <div class="field-row">
+      <span class="prompt">$</span>
+      <input type="text" id="new-title" placeholder="TASK DESCRIPTION..." autocomplete="off" />
+    </div>
+    <div class="meta-row">
+      <select id="new-cat"></select>
+      <div class="date-group">
+        <label for="new-due">DUE DATE</label>
+        <input type="date" id="new-due" />
+      </div>
+      <button class="btn" id="toggle-note-btn" onclick="toggleNoteField()">[+NOTE]</button>
+      <button class="btn primary" onclick="addTask()" style="margin-left:auto;">[ADD TASK]</button>
+    </div>
+    <textarea id="new-note" placeholder="// NOTES..." style="display:none;"></textarea>
+  </div>
+
+  <div id="toolbar">
+    <button class="btn active" id="btn-active" onclick="switchView('active')">[TASKS:0]</button>
+    <button class="btn" id="btn-archived" onclick="switchView('archived')">[ARCHIVE:0]</button>
+    <button class="btn" onclick="openCatMgr()" style="color:var(--g-dim);">[MANAGE CATS]</button>
+    <button class="btn" onclick="openIOMgr()" style="color:var(--g-dim);">[DATA]</button>
+    <div id="cat-filters"></div>
+  </div>
+
+  <div id="task-list-wrap">
+    <div class="list-header">
+      <span>≡</span><span>✓</span><span>TASK</span><span>ACTIONS</span>
+    </div>
+    <div id="task-list"></div>
+  </div>
+
+  <div id="footer">// DRAG ≡ TO REORDER · CHECK BOX TO ARCHIVE · HOVER FOR ACTIONS</div>
+</div>
+
+<!-- Setup Modal -->
+<div class="modal-bg open" id="setup-modal">
+  <div class="modal">
+    <div class="modal-title">░ CLOUD SYNC SETUP</div>
+    <div class="setup-note">
+      SYNC YOUR TASKS ACROSS ALL DEVICES VIA JSONBIN.<br><br>
+      1. GO TO <a href="https://jsonbin.io" target="_blank">JSONBIN.IO</a> → CREATE FREE ACCOUNT<br>
+      2. CLICK YOUR AVATAR → API KEYS<br>
+      3. COPY YOUR SECRET KEY AND PASTE BELOW<br><br>
+      YOUR KEY IS STORED ONLY IN THIS BROWSER AND NEVER SHARED.
+    </div>
+    <input type="text" id="setup-key-input" placeholder="PASTE SECRET KEY HERE..." autocomplete="off" spellcheck="false" />
+    <div id="setup-error"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="skipSetup()">[USE OFFLINE]</button>
+      <button class="btn primary" onclick="connectJsonBin()">[CONNECT]</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Manager Modal -->
+<div class="modal-bg" id="cat-modal">
+  <div class="modal">
+    <div class="modal-title">░ MANAGE CATEGORIES</div>
+    <div id="cat-list"></div>
+    <div class="modal-input-row">
+      <input type="text" id="new-cat-input" placeholder="NEW CATEGORY NAME..." />
+      <button class="btn active" onclick="addCat()">[ADD]</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeCatMgr()">[CANCEL]</button>
+      <button class="btn primary" onclick="saveCats()">[SAVE]</button>
+    </div>
+  </div>
+</div>
+
+<!-- Note Modal -->
+<div class="modal-bg" id="note-modal">
+  <div class="modal">
+    <div class="modal-title">░ EDIT NOTE</div>
+    <div id="note-modal-subtitle"></div>
+    <textarea id="note-modal-text" placeholder="// NOTES..."></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeNoteModal()">[CANCEL]</button>
+      <button class="btn primary" onclick="saveNote()">[SAVE]</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import/Export Modal -->
+<div class="modal-bg" id="io-modal">
+  <div class="modal">
+    <div class="modal-title">░ DATA / IMPORT-EXPORT</div>
+    <div id="io-status"></div>
+    <div class="io-section">
+      <div class="io-section-title">// EXPORT</div>
+      <p>SAVES ALL TASKS, ARCHIVE, AND CATEGORIES TO A .JSON FILE.</p>
+      <button class="btn primary" onclick="exportData()">[EXPORT BACKUP]</button>
+    </div>
+    <div class="io-section">
+      <div class="io-section-title">// IMPORT</div>
+      <p>LOAD A PREVIOUSLY EXPORTED .JSON FILE.<br>WARNING: THIS WILL REPLACE ALL CURRENT DATA.</p>
+      <label id="import-file-label" for="import-file">[SELECT FILE]</label>
+      <input type="file" id="import-file" accept=".json" onchange="handleImportFile(event)" />
+      <div id="import-filename">NO FILE SELECTED</div>
+      <div style="margin-top:10px;">
+        <button class="btn danger" id="import-confirm-btn" onclick="confirmImport()" style="display:none;">[CONFIRM IMPORT — OVERWRITES DATA]</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeIOMgr()">[CLOSE]</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+let JSONBIN_KEY = localStorage.getItem('tm_jb_key') || '';
+let JSONBIN_BIN = localStorage.getItem('tm_jb_bin') || '';
+const JB = 'https://api.jsonbin.io/v3';
+
+// ── State ───────────────────────────────────────────────────────────────────
+let tasks    = [];
+let archived = [];
+let cats     = [
+  {id:'inv',label:'INVESTIGATION'},{id:'ops',label:'ER OPS'},
+  {id:'proj',label:'PROJECTS'},{id:'admin',label:'ADMIN'},{id:'other',label:'OTHER'}
+];
+let view='active', filterCat='all', noteTargetId=null, tempCats=[], noteFieldOpen=false;
+let pendingImport=null, syncTimer=null, dragSrcId=null, touchDropId=null;
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+(async()=>{
+  if(JSONBIN_KEY && JSONBIN_BIN){
+    document.getElementById('setup-modal').classList.remove('open');
+    await cloudLoad();
+  } else if(JSONBIN_KEY && !JSONBIN_BIN){
+    document.getElementById('setup-modal').classList.remove('open');
+    await createBin();
+  } else if(localStorage.getItem('tm_offline')==='1'){
+    document.getElementById('setup-modal').classList.remove('open');
+    loadLocal();
+    setSyncStatus('','OFFLINE');
+  }
+  render();
+  tick(); setInterval(tick,1000);
+})();
+
+// ── Local storage ───────────────────────────────────────────────────────────
+const loadLocal=()=>{
+  tasks    = JSON.parse(localStorage.getItem('tm_tasks')||'[]');
+  archived = JSON.parse(localStorage.getItem('tm_archived')||'[]');
+  const c  = localStorage.getItem('tm_cats');
+  if(c) cats = JSON.parse(c);
+};
+const saveLocal=()=>{
+  localStorage.setItem('tm_tasks',JSON.stringify(tasks));
+  localStorage.setItem('tm_archived',JSON.stringify(archived));
+  localStorage.setItem('tm_cats',JSON.stringify(cats));
+};
+
+// ── Cloud sync ──────────────────────────────────────────────────────────────
+const setSyncStatus=(state,text)=>{
+  const el=document.getElementById('sync-status');
+  const sp=document.getElementById('sync-text');
+  el.className=state; sp.textContent=text;
+};
+
+const cloudLoad=async()=>{
+  setSyncStatus('syncing','LOADING...');
+  try{
+    const r=await fetch(`${JB}/b/${JSONBIN_BIN}/latest`,{headers:{'X-Master-Key':JSONBIN_KEY}});
+    if(!r.ok) throw new Error(r.status);
+    const d=(await r.json()).record;
+    tasks=d.tasks||[]; archived=d.archived||[]; cats=d.cats||cats;
+    saveLocal(); setSyncStatus('ok','SYNCED ✓');
+  }catch{
+    setSyncStatus('err','LOAD ERR'); loadLocal();
+  }
+};
+
+const cloudSave=async()=>{
+  if(!JSONBIN_KEY||!JSONBIN_BIN){saveLocal();return;}
+  setSyncStatus('syncing','SAVING...');
+  saveLocal();
+  try{
+    const r=await fetch(`${JB}/b/${JSONBIN_BIN}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
+      body:JSON.stringify({tasks,archived,cats})
+    });
+    if(!r.ok) throw new Error(r.status);
+    setSyncStatus('ok','SAVED ✓');
+  }catch{ setSyncStatus('err','SAVE ERR'); }
+};
+
+const createBin=async()=>{
+  setSyncStatus('syncing','CONNECTING...');
+  try{
+    const r=await fetch(`${JB}/b`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY,'X-Bin-Name':'task-manager','X-Bin-Private':'true'},
+      body:JSON.stringify({tasks,archived,cats})
+    });
+    if(!r.ok) throw new Error(r.status);
+    JSONBIN_BIN=(await r.json()).metadata.id;
+    localStorage.setItem('tm_jb_bin',JSONBIN_BIN);
+    setSyncStatus('ok','CONNECTED ✓');
+  }catch{ setSyncStatus('err','CONNECT ERR'); }
+};
+
+const save=()=>{ clearTimeout(syncTimer); syncTimer=setTimeout(cloudSave,800); };
+
+// ── Setup modal ─────────────────────────────────────────────────────────────
+const connectJsonBin=async()=>{
+  const key=document.getElementById('setup-key-input').value.trim();
+  const errEl=document.getElementById('setup-error');
+  if(!key){errEl.textContent='// KEY CANNOT BE EMPTY';return;}
+  errEl.textContent='';
+  JSONBIN_KEY=key; localStorage.setItem('tm_jb_key',key);
+  document.getElementById('setup-modal').classList.remove('open');
+  await createBin(); render();
+};
+const skipSetup=()=>{
+  localStorage.setItem('tm_offline','1');
+  document.getElementById('setup-modal').classList.remove('open');
+  loadLocal(); setSyncStatus('','OFFLINE'); render();
+};
+
+// ── Clock ───────────────────────────────────────────────────────────────────
+const tick=()=>{ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false}); };
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+const genId =()=>Math.random().toString(36).slice(2,10);
+const getCat=(id)=>cats.find(c=>c.id===id);
+const esc   =(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtDate=(d)=>{ if(!d) return null; return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+const isOverdue=(d)=>{ if(!d) return false; const t=new Date();t.setHours(0,0,0,0);return new Date(d+'T00:00:00')<t; };
+const isDueSoon=(d)=>{ if(!d) return false; const t=new Date();t.setHours(0,0,0,0);const diff=(new Date(d+'T00:00:00')-t)/86400000;return diff>=0&&diff<=2; };
+const notePreview=(note)=>{ if(!note) return ''; const lines=note.trim().split('\n'); const p=lines.slice(0,2).join('\n'); return p.length>120?p.slice(0,120)+'…':p+(lines.length>2?'\n…':''); };
+
+// ── Render ──────────────────────────────────────────────────────────────────
+const render=()=>{ renderHeader();renderCatSelect();renderCatFilters();renderViewButtons();renderList(); };
+
+const renderHeader=()=>{
+  const open=tasks.filter(t=>!t.done).length;
+  document.getElementById('header-sub').textContent=`JAY WARREN // ${open} OPEN // ${archived.length} ARCHIVED`;
+};
+const renderCatSelect=()=>{
+  const sel=document.getElementById('new-cat'), cur=sel.value;
+  sel.innerHTML=cats.map(c=>`<option value="${esc(c.id)}"${c.id===cur?' selected':''}>${esc(c.label)}</option>`).join('');
+};
+const renderCatFilters=()=>{
+  document.getElementById('cat-filters').innerHTML=
+    `<button class="btn${filterCat==='all'?' active':''}" onclick="setFilter('all')">[ALL]</button>`+
+    cats.map(c=>`<button class="btn${filterCat===c.id?' active':''}" onclick="setFilter('${c.id}')" style="font-size:12px;">[${esc(c.label.slice(0,7))}]</button>`).join('');
+};
+const renderViewButtons=()=>{
+  document.getElementById('btn-active').textContent=`[TASKS:${tasks.length}]`;
+  document.getElementById('btn-archived').textContent=`[ARCHIVE:${archived.length}]`;
+  document.getElementById('btn-active').className='btn'+(view==='active'?' active':'');
+  document.getElementById('btn-archived').className='btn'+(view==='archived'?' active':'');
+};
+const renderList=()=>{
+  const listEl=document.getElementById('task-list');
+  const source=view==='active'?tasks:archived;
+  const filtered=source.filter(t=>filterCat==='all'||t.category===filterCat);
+  if(view==='active'){
+    filtered.sort((a,b)=>{
+      if(a.done!==b.done) return a.done?1:-1;
+      if(!a.dueDate&&!b.dueDate) return 0;
+      if(!a.dueDate) return 1; if(!b.dueDate) return -1;
+      return new Date(a.dueDate)-new Date(b.dueDate);
+    });
+  }
+  if(!filtered.length){ listEl.innerHTML=`<div class="empty-state">// ${view==='active'?'NO TASKS FOUND':'ARCHIVE EMPTY'}_</div>`; return; }
+  listEl.innerHTML=filtered.map(t=>taskRowHTML(t)).join('');
+  if(view==='active') initDragDrop();
+};
+
+const taskRowHTML=(t)=>{
+  const cat=getCat(t.category);
+  const over=isOverdue(t.dueDate)&&!t.done;
+  const soon=isDueSoon(t.dueDate)&&!t.done;
+  const dueStr=fmtDate(t.dueDate);
+  const dueClass=over?'due overdue':soon?'due soon':'due';
+  const prefix=t.done?'// ':'&gt; ';
+  const preview=notePreview(t.note);
+  const draggable=view==='active'?'draggable="true"':'';
+  const handle=view==='active'?`<div class="drag-handle" title="Drag to reorder">≡</div>`:`<div></div>`;
+  const archBtn=view==='archived'?`<button class="btn success" onclick="unarchiveTask('${t.id}')">[UNARCH]</button>`:'';
+
+  return `<div class="task-row" id="row-${t.id}" ${draggable} data-id="${t.id}">
+    ${handle}
+    <div class="check-box${t.done?' checked':''}"
+      onclick="${view==='active'?`archiveTask('${t.id}')`:`unarchiveTask('${t.id}')`}"
+      title="${view==='active'?'Check to archive':'Unarchive'}">${t.done?'█':''}</div>
+    <div>
+      <div class="task-title${t.done?' done':''}">${prefix}${esc(t.title)}</div>
+      <div class="task-meta">
+        ${cat?`<span class="tag">[${esc(cat.label)}]</span>`:''}
+        ${dueStr?`<span class="${dueClass}">${over?'!! ':soon?'! ':''}DUE:${dueStr}</span>`:''}
+      </div>
+      ${preview?`<div class="note-preview">${esc(preview)}</div>`:''}
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="openNoteModal('${t.id}')">[NOTE]</button>
+      ${archBtn}
+      <button class="btn danger" onclick="deleteTask('${t.id}')">[DEL]</button>
+    </div>
+  </div>`;
+};
+
+// ── Drag & Drop ─────────────────────────────────────────────────────────────
+const initDragDrop=()=>{
+  document.querySelectorAll('#task-list .task-row[draggable]').forEach(row=>{
+    // Mouse
+    row.addEventListener('dragstart',e=>{ dragSrcId=row.dataset.id; row.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    row.addEventListener('dragend',()=>{ row.classList.remove('dragging'); clearDragOver(); });
+    row.addEventListener('dragover',e=>{ e.preventDefault(); clearDragOver(); if(row.dataset.id!==dragSrcId) row.classList.add('drag-over'); });
+    row.addEventListener('drop',e=>{ e.preventDefault(); if(dragSrcId&&dragSrcId!==row.dataset.id) reorderTasks(dragSrcId,row.dataset.id); dragSrcId=null; });
+
+    // Touch
+    const handle=row.querySelector('.drag-handle');
+    if(!handle) return;
+    handle.addEventListener('touchstart',e=>{ dragSrcId=row.dataset.id; row.classList.add('dragging'); e.preventDefault(); },{passive:false});
+    handle.addEventListener('touchmove',e=>{
+      e.preventDefault();
+      const y=e.touches[0].clientY;
+      clearDragOver(); touchDropId=null;
+      document.querySelectorAll('#task-list .task-row').forEach(r=>{
+        const rect=r.getBoundingClientRect();
+        if(y>=rect.top&&y<=rect.bottom&&r.dataset.id!==dragSrcId){ r.classList.add('drag-over'); touchDropId=r.dataset.id; }
+      });
+    },{passive:false});
+    handle.addEventListener('touchend',()=>{
+      row.classList.remove('dragging'); clearDragOver();
+      if(dragSrcId&&touchDropId&&dragSrcId!==touchDropId) reorderTasks(dragSrcId,touchDropId);
+      dragSrcId=null; touchDropId=null;
+    });
+  });
+};
+const clearDragOver=()=>document.querySelectorAll('.task-row').forEach(r=>r.classList.remove('drag-over'));
+const reorderTasks=(srcId,tgtId)=>{
+  const si=tasks.findIndex(t=>t.id===srcId), ti=tasks.findIndex(t=>t.id===tgtId);
+  if(si===-1||ti===-1) return;
+  const [m]=tasks.splice(si,1); tasks.splice(ti,0,m);
+  save(); render();
+};
+
+// ── Task actions ─────────────────────────────────────────────────────────────
+const addTask=()=>{
+  const title=document.getElementById('new-title').value.trim();
+  if(!title) return;
+  tasks.unshift({id:genId(),title,category:document.getElementById('new-cat').value,dueDate:document.getElementById('new-due').value,note:document.getElementById('new-note').value.trim(),done:false,createdAt:new Date().toISOString()});
+  save();
+  document.getElementById('new-title').value='';
+  document.getElementById('new-due').value='';
+  document.getElementById('new-note').value='';
+  if(noteFieldOpen) toggleNoteField();
+  render();
+};
+const archiveTask=(id)=>{
+  const idx=tasks.findIndex(t=>t.id===id); if(idx===-1) return;
+  archived.unshift({...tasks[idx],done:true,archivedAt:new Date().toISOString()});
+  tasks.splice(idx,1); save(); render();
+};
+const unarchiveTask=(id)=>{
+  const idx=archived.findIndex(t=>t.id===id); if(idx===-1) return;
+  const t={...archived[idx],done:false}; delete t.archivedAt;
+  tasks.unshift(t); archived.splice(idx,1); save(); render();
+};
+const deleteTask=(id)=>{
+  if(view==='active') tasks=tasks.filter(t=>t.id!==id);
+  else archived=archived.filter(t=>t.id!==id);
+  save(); render();
+};
+const switchView=(v)=>{ view=v; render(); };
+const setFilter=(c)=>{ filterCat=c; render(); };
+const toggleNoteField=()=>{
+  noteFieldOpen=!noteFieldOpen;
+  const el=document.getElementById('new-note'), btn=document.getElementById('toggle-note-btn');
+  el.style.display=noteFieldOpen?'block':'none';
+  btn.classList.toggle('active',noteFieldOpen);
+  if(noteFieldOpen) el.focus();
+};
+
+// ── Note modal ───────────────────────────────────────────────────────────────
+const openNoteModal=(id)=>{
+  const task=[...tasks,...archived].find(t=>t.id===id); if(!task) return;
+  noteTargetId=id;
+  document.getElementById('note-modal-subtitle').textContent='// '+task.title;
+  document.getElementById('note-modal-text').value=task.note||'';
+  document.getElementById('note-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('note-modal-text').focus(),50);
+};
+const closeNoteModal=()=>{ document.getElementById('note-modal').classList.remove('open'); noteTargetId=null; };
+const saveNote=()=>{
+  const note=document.getElementById('note-modal-text').value.trim();
+  const up=arr=>arr.map(t=>t.id===noteTargetId?{...t,note}:t);
+  tasks=up(tasks); archived=up(archived);
+  save(); render(); closeNoteModal();
+};
+
+// ── Category manager ─────────────────────────────────────────────────────────
+const openCatMgr=()=>{ tempCats=cats.map(c=>({...c})); renderCatModalList(); document.getElementById('new-cat-input').value=''; document.getElementById('cat-modal').classList.add('open'); };
+const closeCatMgr=()=>document.getElementById('cat-modal').classList.remove('open');
+const renderCatModalList=()=>{
+  const el=document.getElementById('cat-list');
+  if(!tempCats.length){el.innerHTML=`<div style="color:var(--g-dimmer);font-size:14px;padding:8px 0;">No categories yet.</div>`;return;}
+  el.innerHTML=tempCats.map(c=>`<div class="cat-item"><span>▸ ${esc(c.label)}</span><button class="btn danger" style="font-size:12px;" onclick="removeTempCat('${c.id}')">[DEL]</button></div>`).join('');
+};
+const addCat=()=>{
+  const val=document.getElementById('new-cat-input').value.trim().toUpperCase();
+  if(!val) return;
+  tempCats.push({id:genId(),label:val}); document.getElementById('new-cat-input').value=''; renderCatModalList();
+};
+const removeTempCat=(id)=>{ tempCats=tempCats.filter(c=>c.id!==id); renderCatModalList(); };
+const saveCats=()=>{ cats=tempCats; save(); render(); closeCatMgr(); };
+
+// ── Import / Export ──────────────────────────────────────────────────────────
+const openIOMgr=()=>{
+  setIOStatus('',''); document.getElementById('import-filename').textContent='NO FILE SELECTED';
+  document.getElementById('import-confirm-btn').style.display='none';
+  document.getElementById('import-file').value=''; pendingImport=null;
+  document.getElementById('io-modal').classList.add('open');
+};
+const closeIOMgr=()=>{ document.getElementById('io-modal').classList.remove('open'); pendingImport=null; };
+const setIOStatus=(msg,type)=>{ const el=document.getElementById('io-status'); el.textContent=msg; el.className=type; };
+const exportData=()=>{
+  const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),tasks,archived,cats},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a'), date=new Date().toISOString().slice(0,10);
+  a.href=url; a.download=`task-manager-backup-${date}.json`; a.click(); URL.revokeObjectURL(url);
+  setIOStatus(`// EXPORTED: task-manager-backup-${date}.json`,'ok');
+};
+const handleImportFile=(e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  document.getElementById('import-filename').textContent=file.name;
+  const reader=new FileReader();
+  reader.onload=(ev)=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.tasks||!data.archived||!data.cats) throw new Error();
+      pendingImport=data;
+      document.getElementById('import-confirm-btn').style.display='inline-block';
+      setIOStatus('// FILE VALID — CLICK CONFIRM TO OVERWRITE','ok');
+    }catch{ pendingImport=null; document.getElementById('import-confirm-btn').style.display='none'; setIOStatus('// ERROR: INVALID OR CORRUPTED FILE','err'); }
+  };
+  reader.readAsText(file);
+};
+const confirmImport=()=>{
+  if(!pendingImport) return;
+  tasks=pendingImport.tasks; archived=pendingImport.archived; cats=pendingImport.cats;
+  save(); render(); pendingImport=null;
+  document.getElementById('import-confirm-btn').style.display='none';
+  document.getElementById('import-filename').textContent='NO FILE SELECTED';
+  document.getElementById('import-file').value='';
+  setIOStatus('// IMPORT COMPLETE — DATA LOADED SUCCESSFULLY','ok');
+};
+
+// ── Keyboard ─────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeNoteModal();closeCatMgr();closeIOMgr();}
+  if(e.key==='Enter'&&document.activeElement.id==='new-title'&&!noteFieldOpen) addTask();
+  if(e.key==='Enter'&&document.activeElement.id==='new-cat-input') addCat();
+  if(e.key==='Enter'&&document.activeElement.id==='setup-key-input') connectJsonBin();
+});
+['cat-modal','note-modal','io-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id){closeCatMgr();closeNoteModal();closeIOMgr();} });
+});
+</script>
+</body>
+</html>
