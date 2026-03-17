@@ -271,26 +271,6 @@
   <div id="footer">// DRAG ≡ TO REORDER · CHECK BOX TO ARCHIVE · HOVER FOR ACTIONS</div>
 </div>
 
-<!-- Setup Modal -->
-<div class="modal-bg open" id="setup-modal">
-  <div class="modal">
-    <div class="modal-title">░ CLOUD SYNC SETUP</div>
-    <div class="setup-note">
-      SYNC YOUR TASKS ACROSS ALL DEVICES VIA JSONBIN.<br><br>
-      1. GO TO <a href="https://jsonbin.io" target="_blank">JSONBIN.IO</a> → CREATE FREE ACCOUNT<br>
-      2. CLICK YOUR AVATAR → API KEYS<br>
-      3. COPY YOUR SECRET KEY AND PASTE BELOW<br><br>
-      YOUR KEY IS STORED ONLY IN THIS BROWSER AND NEVER SHARED.
-    </div>
-    <input type="text" id="setup-key-input" placeholder="PASTE SECRET KEY HERE..." autocomplete="off" spellcheck="false" />
-    <div id="setup-error"></div>
-    <div class="modal-actions">
-      <button class="btn" onclick="skipSetup()">[USE OFFLINE]</button>
-      <button class="btn primary" onclick="connectJsonBin()">[CONNECT]</button>
-    </div>
-  </div>
-</div>
-
 <!-- Category Manager Modal -->
 <div class="modal-bg" id="cat-modal">
   <div class="modal">
@@ -348,8 +328,8 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────────────────────────
-let JSONBIN_KEY = localStorage.getItem('tm_jb_key') || '';
-let JSONBIN_BIN = localStorage.getItem('tm_jb_bin') || '';
+const JSONBIN_KEY = '$2a$10$qx3NF5imYqx..oIApXWAXOcLhlLamREEOJIV4eTDwJgvNBPnUfQmi';
+const JSONBIN_BIN = '69b9e772b7ec241ddc79fbf1';
 const JB = 'https://api.jsonbin.io/v3';
 
 // ── State ───────────────────────────────────────────────────────────────────
@@ -364,17 +344,7 @@ let pendingImport=null, syncTimer=null, dragSrcId=null, touchDropId=null;
 
 // ── Boot ────────────────────────────────────────────────────────────────────
 (async()=>{
-  if(JSONBIN_KEY && JSONBIN_BIN){
-    document.getElementById('setup-modal').classList.remove('open');
-    await cloudLoad();
-  } else if(JSONBIN_KEY && !JSONBIN_BIN){
-    document.getElementById('setup-modal').classList.remove('open');
-    await createBin();
-  } else if(localStorage.getItem('tm_offline')==='1'){
-    document.getElementById('setup-modal').classList.remove('open');
-    loadLocal();
-    setSyncStatus('','OFFLINE');
-  }
+  await cloudLoad();
   render();
   tick(); setInterval(tick,1000);
 })();
@@ -413,7 +383,6 @@ const cloudLoad=async()=>{
 };
 
 const cloudSave=async()=>{
-  if(!JSONBIN_KEY||!JSONBIN_BIN){saveLocal();return;}
   setSyncStatus('syncing','SAVING...');
   saveLocal();
   try{
@@ -427,38 +396,11 @@ const cloudSave=async()=>{
   }catch{ setSyncStatus('err','SAVE ERR'); }
 };
 
-const createBin=async()=>{
-  setSyncStatus('syncing','CONNECTING...');
-  try{
-    const r=await fetch(`${JB}/b`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY,'X-Bin-Name':'task-manager','X-Bin-Private':'true'},
-      body:JSON.stringify({tasks,archived,cats})
-    });
-    if(!r.ok) throw new Error(r.status);
-    JSONBIN_BIN=(await r.json()).metadata.id;
-    localStorage.setItem('tm_jb_bin',JSONBIN_BIN);
-    setSyncStatus('ok','CONNECTED ✓');
-  }catch{ setSyncStatus('err','CONNECT ERR'); }
-};
+
 
 const save=()=>{ clearTimeout(syncTimer); syncTimer=setTimeout(cloudSave,800); };
 
-// ── Setup modal ─────────────────────────────────────────────────────────────
-const connectJsonBin=async()=>{
-  const key=document.getElementById('setup-key-input').value.trim();
-  const errEl=document.getElementById('setup-error');
-  if(!key){errEl.textContent='// KEY CANNOT BE EMPTY';return;}
-  errEl.textContent='';
-  JSONBIN_KEY=key; localStorage.setItem('tm_jb_key',key);
-  document.getElementById('setup-modal').classList.remove('open');
-  await createBin(); render();
-};
-const skipSetup=()=>{
-  localStorage.setItem('tm_offline','1');
-  document.getElementById('setup-modal').classList.remove('open');
-  loadLocal(); setSyncStatus('','OFFLINE'); render();
-};
+// ── Setup modal removed (credentials hardcoded) ────────────────────────────
 
 // ── Clock ───────────────────────────────────────────────────────────────────
 const tick=()=>{ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false}); };
@@ -696,8 +638,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeNoteModal();closeCatMgr();closeIOMgr();}
   if(e.key==='Enter'&&document.activeElement.id==='new-title'&&!noteFieldOpen) addTask();
   if(e.key==='Enter'&&document.activeElement.id==='new-cat-input') addCat();
-  if(e.key==='Enter'&&document.activeElement.id==='setup-key-input') connectJsonBin();
-});
+  });
 ['cat-modal','note-modal','io-modal'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id){closeCatMgr();closeNoteModal();closeIOMgr();} });
 });
