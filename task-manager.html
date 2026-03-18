@@ -342,13 +342,6 @@ let cats     = [
 let view='active', filterCat='all', noteTargetId=null, tempCats=[], noteFieldOpen=false;
 let pendingImport=null, syncTimer=null, dragSrcId=null, touchDropId=null;
 
-// ── Boot ────────────────────────────────────────────────────────────────────
-(async()=>{
-  await cloudLoad();
-  render();
-  tick(); setInterval(tick,1000);
-})();
-
 // ── Local storage ───────────────────────────────────────────────────────────
 const loadLocal=()=>{
   tasks    = JSON.parse(localStorage.getItem('tm_tasks')||'[]');
@@ -642,6 +635,12 @@ document.addEventListener('keydown',e=>{
 ['cat-modal','note-modal','io-modal'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id){closeCatMgr();closeNoteModal();closeIOMgr();} });
 });
+// ── Boot ────────────────────────────────────────────────────────────────────
+(async()=>{
+  await cloudLoad();
+  render();
+  tick(); setInterval(tick,1000);
+})();
 </script>
 </body>
 </html>
