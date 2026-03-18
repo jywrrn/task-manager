@@ -1,274 +1,413 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TASK MANAGER</title>
-<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Task Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
-  :root {
-    --g-bright: #00ff41;
-    --g-mid:    #00cc33;
-    --g-dim:    #007a1f;
-    --g-dimmer: #004d13;
-    --g-bg:     #000000;
-    --g-panel:  #020d02;
-    --g-hover:  #001a05;
-    --g-border: #003d0f;
-    --g-warn:   #ffcc00;
-    --g-err:    #ff3333;
-    --mono: 'VT323', 'Courier New', monospace;
-  }
+:root {
+  --pink:    #ff2d78;
+  --cyan:    #00e5ff;
+  --purple:  #b44fff;
+  --orange:  #ff6a00;
+  --bg:      #04050f;
+  --bg2:     #080b1a;
+  --glass:   rgba(255,255,255,0.04);
+  --glass2:  rgba(255,255,255,0.07);
+  --border:  rgba(0,229,255,0.15);
+  --border2: rgba(180,79,255,0.25);
+  --text:    #e8eeff;
+  --muted:   rgba(232,238,255,0.45);
+  --warn:    #ffcc00;
+  --err:     #ff3355;
+  --success: #00ffaa;
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--g-bg); color: var(--g-bright); font-family: var(--mono); min-height: 100vh; }
-  ::selection { background: var(--g-bright); color: #000; }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: #000; }
-  ::-webkit-scrollbar-thumb { background: var(--g-border); }
-  input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.7) sepia(1) saturate(5) hue-rotate(70deg); cursor: pointer;
-  }
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:16px;-webkit-tap-highlight-color:transparent;}
+::selection{background:var(--pink);color:#fff;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
 
-  @keyframes scanline { 0% { transform: translateY(-4px); } 100% { transform: translateY(100vh); } }
-  @keyframes flicker { 0%,100%{opacity:1;}92%{opacity:1;}93%{opacity:.96;}94%{opacity:1;} }
-  @keyframes blink { 0%,49%{opacity:1;}50%,100%{opacity:0;} }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ── Background ── */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 40% at 15% 0%, rgba(180,79,255,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 35% at 90% 100%, rgba(255,45,120,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 80% 10%, rgba(0,229,255,0.10) 0%, transparent 55%);
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);
+  background-size:40px 40px;
+}
 
-  #scanlines {
-    position: fixed; inset: 0; pointer-events: none; z-index: 9999;
-    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
-    animation: flicker 8s infinite;
-  }
-  #scanline-sweep {
-    position: fixed; top: 0; left: 0; width: 100%; height: 3px;
-    background: linear-gradient(transparent,rgba(0,255,65,0.12),transparent);
-    animation: scanline 7s linear infinite; pointer-events: none; z-index: 9998;
-  }
-  .cursor { animation: blink 1s step-end infinite; }
+/* ── Layout ── */
+#app{position:relative;z-index:1;max-width:740px;margin:0 auto;padding:24px 16px 80px;}
 
-  /* Sync indicator */
-  #sync-status {
-    font-size: 12px; letter-spacing: 1px; padding: 2px 8px;
-    border: 1px solid var(--g-border); color: var(--g-dimmer);
-    display: inline-block; min-width: 130px; text-align: center;
-  }
-  #sync-status.syncing { color: var(--g-warn); border-color: rgba(255,204,0,0.4); }
-  #sync-status.ok      { color: var(--g-mid);  border-color: rgba(0,204,51,0.4); }
-  #sync-status.err     { color: var(--g-err);  border-color: rgba(255,51,51,0.4); }
-  #sync-spinner {
-    display: none; width: 10px; height: 10px;
-    border: 2px solid transparent; border-top-color: var(--g-warn);
-    border-radius: 50%; animation: spin 0.6s linear infinite;
-    vertical-align: middle; margin-right: 4px;
-  }
-  #sync-status.syncing #sync-spinner { display: inline-block; }
+/* ── Header ── */
+#header{margin-bottom:28px;}
+.header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+h1{
+  font-family:'Orbitron',monospace;font-size:clamp(20px,5vw,28px);font-weight:900;
+  letter-spacing:3px;line-height:1;
+  background:linear-gradient(90deg,var(--cyan),var(--purple),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 20px rgba(0,229,255,0.4));
+}
+.header-meta{font-size:13px;color:var(--muted);letter-spacing:1px;font-weight:500;margin-top:6px;}
+.clock-col{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+#clock{font-family:'Orbitron',monospace;font-size:13px;color:var(--cyan);letter-spacing:2px;opacity:0.7;}
+#sync-status{
+  font-size:11px;letter-spacing:1px;padding:3px 10px;font-weight:600;
+  border:1px solid var(--border);border-radius:20px;color:var(--muted);
+  background:var(--glass);backdrop-filter:blur(8px);
+  transition:all 0.3s;white-space:nowrap;
+}
+#sync-status.syncing{color:var(--warn);border-color:rgba(255,204,0,0.4);box-shadow:0 0 10px rgba(255,204,0,0.2);}
+#sync-status.ok{color:var(--success);border-color:rgba(0,255,170,0.4);box-shadow:0 0 10px rgba(0,255,170,0.2);}
+#sync-status.err{color:var(--err);border-color:rgba(255,51,85,0.4);box-shadow:0 0 10px rgba(255,51,85,0.2);}
+@keyframes spin{to{transform:rotate(360deg);}}
+#sync-spinner{display:none;width:9px;height:9px;border:2px solid transparent;border-top-color:var(--warn);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px;}
+#sync-status.syncing #sync-spinner{display:inline-block;}
 
-  /* Layout */
-  #app { max-width: 720px; margin: 0 auto; padding: 24px 20px 80px; }
+/* ── Glass card ── */
+.card{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:16px;
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  box-shadow:0 4px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.06);
+  margin-bottom:16px;
+  overflow:hidden;
+}
+.card-header{
+  padding:12px 18px;
+  border-bottom:1px solid var(--border);
+  font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;
+  color:var(--cyan);font-weight:600;
+  display:flex;align-items:center;gap:8px;
+}
+.card-header::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
 
-  /* Header */
-  #header {
-    border-bottom: 1px solid var(--g-mid); padding-bottom: 10px; margin-bottom: 22px;
-    display: flex; justify-content: space-between; align-items: flex-end;
-  }
-  #header h1 { font-size: 32px; letter-spacing: 4px; color: var(--g-bright); }
-  #header .sub { font-size: 14px; color: var(--g-dim); letter-spacing: 2px; margin-top: 2px; }
-  .clock-col { font-size: 13px; color: var(--g-dimmer); letter-spacing: 1px; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+/* ── Form inputs ── */
+input[type="text"],input[type="date"],textarea,select{
+  background:transparent;border:none;outline:none;
+  color:var(--text);font-family:'Rajdhani',sans-serif;font-size:16px;
+  font-weight:500;width:100%;
+}
+input::placeholder,textarea::placeholder{color:var(--muted);}
+input[type="date"]{color:var(--muted);width:auto;}
+input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1) saturate(3) hue-rotate(160deg);cursor:pointer;}
 
-  /* Panel */
-  .panel { border: 1px solid var(--g-border); background: var(--g-panel); margin-bottom: 20px; box-shadow: 0 0 16px rgba(0,255,65,0.04); }
-  .panel-label { font-size: 13px; color: var(--g-dim); letter-spacing: 2px; padding: 8px 14px; border-bottom: 1px solid var(--g-border); }
+.form-title-row{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 18px;border-bottom:1px solid var(--border);
+}
+.form-title-row input{font-size:17px;font-weight:600;letter-spacing:0.3px;}
+.form-prompt{color:var(--pink);font-family:'Orbitron',monospace;font-size:14px;font-weight:700;flex-shrink:0;}
 
-  /* Inputs */
-  input[type="text"],input[type="date"],textarea,select {
-    background: transparent; border: none; outline: none;
-    color: var(--g-bright); font-family: var(--mono); font-size: 17px;
-  }
-  input[type="text"]::placeholder,textarea::placeholder { color: var(--g-dimmer); }
+.form-meta{display:flex;align-items:center;gap:10px;padding:10px 18px;flex-wrap:wrap;}
 
-  .field-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--g-border); }
-  .field-row .prompt { color: var(--g-dim); flex-shrink: 0; }
-  .field-row input[type="text"] { flex: 1; font-size: 19px; }
-  .meta-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; flex-wrap: wrap; }
+.form-select{
+  background:rgba(0,229,255,0.06);
+  border:1px solid var(--border);
+  border-radius:8px;padding:6px 10px;
+  color:var(--cyan);font-family:'Rajdhani',sans-serif;
+  font-size:14px;font-weight:600;letter-spacing:0.5px;
+  cursor:pointer;outline:none;
+}
+.form-select option{background:#080b1a;color:var(--text);}
 
-  .date-group { display: flex; align-items: center; gap: 6px; border: 1px solid var(--g-border); padding: 4px 8px; }
-  .date-group label { font-size: 13px; color: var(--g-dim); letter-spacing: 1px; white-space: nowrap; }
-  .date-group input[type="date"] { font-size: 14px; color: var(--g-mid); width: 130px; }
+.due-label{font-size:12px;color:var(--muted);letter-spacing:1px;font-weight:600;white-space:nowrap;}
+.date-wrap{display:flex;align-items:center;gap:6px;background:rgba(180,79,255,0.06);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;}
+.date-wrap input[type="date"]{font-size:13px;font-weight:600;color:var(--purple);}
 
-  select { border: 1px solid var(--g-border); padding: 4px 8px; color: var(--g-mid); font-size: 15px; cursor: pointer; }
-  select option { background: #000; color: var(--g-mid); }
+.form-note-area{
+  padding:0 18px 14px;display:none;
+}
+.form-note-area textarea{
+  background:rgba(255,255,255,0.03);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;min-height:68px;resize:vertical;
+  font-size:14px;color:var(--muted);line-height:1.6;
+}
 
-  textarea {
-    display: block; width: 100%; border: none; border-top: 1px solid var(--g-border);
-    padding: 10px 14px; min-height: 72px; resize: vertical; font-size: 15px; color: var(--g-mid); line-height: 1.6;
-  }
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:1px;padding:6px 14px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--border);background:var(--glass);color:var(--muted);
+  transition:all 0.18s;white-space:nowrap;
+}
+.btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.08);box-shadow:0 0 12px rgba(0,229,255,0.15);}
+.btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.1);box-shadow:0 0 14px rgba(0,229,255,0.2);}
+.btn-primary{
+  background:linear-gradient(135deg,rgba(255,45,120,0.3),rgba(180,79,255,0.3));
+  border-color:var(--pink);color:#fff;font-size:14px;padding:8px 20px;
+  box-shadow:0 0 20px rgba(255,45,120,0.25);
+}
+.btn-primary:hover{box-shadow:0 0 30px rgba(255,45,120,0.45);border-color:#ff6ea0;color:#fff;}
+.btn-danger{border-color:rgba(255,51,85,0.4);color:var(--err);}
+.btn-danger:hover{border-color:var(--err);background:rgba(255,51,85,0.1);box-shadow:0 0 12px rgba(255,51,85,0.2);}
+.btn-danger.armed{border-color:var(--err);background:rgba(255,51,85,0.15);color:var(--err);box-shadow:0 0 16px rgba(255,51,85,0.3);animation:pulse-danger .5s ease;}
+@keyframes pulse-danger{0%,100%{opacity:1;}50%{opacity:0.6;}}
+.btn-success{border-color:rgba(0,255,170,0.4);color:var(--success);}
+.btn-success:hover{border-color:var(--success);background:rgba(0,255,170,0.08);box-shadow:0 0 12px rgba(0,255,170,0.2);}
+.btn-note{border-color:rgba(180,79,255,0.4);color:var(--purple);}
+.btn-note:hover{border-color:var(--purple);background:rgba(180,79,255,0.1);box-shadow:0 0 12px rgba(180,79,255,0.2);}
+.btn-sm{font-size:12px;padding:4px 10px;}
 
-  /* Buttons */
-  .btn {
-    background: transparent; border: 1px solid var(--g-border); color: var(--g-dim);
-    font-family: var(--mono); font-size: 14px; padding: 4px 12px;
-    cursor: pointer; letter-spacing: 1px; transition: all 0.1s;
-  }
-  .btn:hover { border-color: var(--g-mid); color: var(--g-bright); filter: brightness(1.1); }
-  .btn.active { border-color: var(--g-mid); color: var(--g-bright); background: rgba(0,255,65,0.05); }
-  .btn.primary { border-color: var(--g-bright); color: var(--g-bright); letter-spacing: 2px; }
-  .btn.danger { border-color: rgba(255,51,51,0.3); color: var(--g-err); }
-  .btn.danger:hover { border-color: var(--g-err); }
-  .btn.success { border-color: rgba(0,255,65,0.4); color: var(--g-mid); }
+/* ── Toolbar ── */
+#toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.toolbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#cat-filter-select{
+  background:var(--glass);border:1px solid var(--border2);border-radius:8px;
+  color:var(--purple);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;
+  letter-spacing:0.5px;padding:6px 10px;cursor:pointer;outline:none;
+}
+#cat-filter-select option{background:#080b1a;color:var(--text);}
 
-  /* Toolbar */
-  #toolbar { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
-  #cat-filters { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-  #cat-filter-select {
-    background: var(--g-panel); border: 1px solid var(--g-border);
-    color: var(--g-mid); font-family: var(--mono); font-size: 14px;
-    padding: 4px 10px; cursor: pointer; outline: none; letter-spacing: 1px;
-  }
-  #cat-filter-select option { background: #000; color: var(--g-mid); }
+/* ── Task list ── */
+#task-list-wrap{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:16px;
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  box-shadow:0 4px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow:hidden;
+}
+.list-header{
+  display:grid;grid-template-columns:20px 28px 1fr auto;
+  gap:10px;padding:10px 18px;
+  border-bottom:1px solid var(--border);
+  font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;
+  color:var(--muted);
+}
 
-  /* Task list */
-  #task-list-wrap { border: 1px solid var(--g-border); background: var(--g-panel); box-shadow: 0 0 20px rgba(0,255,65,0.03); }
-  .list-header {
-    display: grid; grid-template-columns: 18px 22px 1fr auto;
-    gap: 10px; padding: 5px 14px; border-bottom: 1px solid var(--g-border);
-    font-size: 12px; color: var(--g-dimmer); letter-spacing: 2px;
-  }
+/* ── Task rows ── */
+.task-row{
+  display:grid;grid-template-columns:20px 28px 1fr auto;
+  gap:10px;padding:14px 18px;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  align-items:start;transition:background 0.15s;
+  position:relative;
+}
+.task-row:last-child{border-bottom:none;}
+.task-row:hover{background:rgba(255,255,255,0.03);}
+.task-row:hover .task-actions{opacity:1;}
+.task-row.drag-over{border-top:2px solid var(--cyan);box-shadow:inset 0 2px 0 rgba(0,229,255,0.3);}
+.task-row.dragging{opacity:0.3;}
 
-  .task-row {
-    display: grid; grid-template-columns: 18px 22px 1fr auto;
-    gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--g-border);
-    align-items: start; transition: background 0.1s; cursor: default;
-  }
-  .task-row:last-child { border-bottom: none; }
-  .task-row:hover { background: var(--g-hover); box-shadow: inset 0 0 12px rgba(0,255,65,0.04); }
-  .task-row:hover .actions { opacity: 1; }
-  .task-row.drag-over { border-top: 2px solid var(--g-bright); }
-  .task-row.dragging { opacity: 0.35; }
+/* Drag handle */
+.drag-handle{
+  cursor:grab;color:var(--muted);font-size:15px;padding-top:3px;
+  user-select:none;flex-shrink:0;line-height:1;touch-action:none;
+  transition:color 0.15s;
+}
+.drag-handle:hover{color:var(--cyan);}
+.drag-handle:active{cursor:grabbing;}
 
-  .actions { opacity: 0; transition: opacity 0.1s; display: flex; gap: 4px; align-items: flex-start; padding-top: 2px; }
+/* Checkbox */
+.check-box{
+  width:22px;height:22px;border-radius:6px;flex-shrink:0;margin-top:1px;
+  border:2px solid var(--border2);background:transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.18s;
+}
+.check-box:hover{border-color:var(--pink);box-shadow:0 0 10px rgba(255,45,120,0.3);}
+.check-box.checked{background:linear-gradient(135deg,var(--pink),var(--purple));border-color:transparent;box-shadow:0 0 12px rgba(255,45,120,0.4);}
+.check-box.checked::after{content:'✓';color:#fff;font-size:13px;font-weight:700;line-height:1;}
 
-  /* Drag handle */
-  .drag-handle {
-    cursor: grab; color: var(--g-dimmer); font-size: 16px; padding-top: 3px;
-    user-select: none; flex-shrink: 0; line-height: 1; touch-action: none;
-  }
-  .drag-handle:hover { color: var(--g-dim); }
-  .drag-handle:active { cursor: grabbing; }
+/* Task content */
+.task-title{
+  font-size:16px;font-weight:600;color:var(--text);
+  line-height:1.3;margin-bottom:5px;letter-spacing:0.2px;
+  cursor:pointer;transition:color 0.15s;
+}
+.task-title:hover{color:var(--cyan);}
+.task-title.done{text-decoration:line-through;color:var(--muted);}
+.task-title-input{
+  font-size:16px;font-weight:600;color:var(--cyan);
+  background:transparent;border:none;border-bottom:1px solid var(--cyan);
+  outline:none;width:100%;margin-bottom:5px;font-family:'Rajdhani',sans-serif;
+  letter-spacing:0.2px;padding-bottom:2px;
+}
 
-  /* Checkbox */
-  .check-box {
-    width: 20px; height: 20px; border: 1px solid var(--g-dimmer); background: transparent;
-    cursor: pointer; font-family: var(--mono); font-size: 14px; color: var(--g-bright);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
-    transition: border-color 0.1s;
-  }
-  .check-box:hover { border-color: var(--g-mid); }
-  .check-box.checked { border-color: var(--g-mid); }
+.task-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.tag{
+  font-size:11px;font-weight:700;letter-spacing:1px;
+  padding:2px 8px;border-radius:20px;
+  background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);color:var(--cyan);
+}
+.due{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:0.5px;}
+.due.overdue{color:var(--err);text-shadow:0 0 8px rgba(255,51,85,0.4);}
+.due.soon{color:var(--warn);text-shadow:0 0 8px rgba(255,204,0,0.3);}
 
-  .task-title { font-size: 18px; color: var(--g-bright); line-height: 1.25; margin-bottom: 4px; letter-spacing: 0.3px; }
-  .task-title.done { text-decoration: line-through; text-decoration-color: var(--g-dim); color: var(--g-dimmer); }
+.note-preview{
+  font-size:13px;color:var(--muted);margin-top:7px;
+  border-left:2px solid var(--border2);padding-left:10px;
+  line-height:1.5;white-space:pre-wrap;word-break:break-word;
+  font-weight:400;
+}
 
-  .task-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; }
-  .tag { border: 1px solid var(--g-border); color: var(--g-dim); padding: 0 6px; }
-  .due { color: var(--g-dimmer); }
-  .due.overdue { color: var(--g-err); }
-  .due.soon { color: var(--g-warn); }
+/* Task actions */
+.task-actions{
+  opacity:0;transition:opacity 0.15s;
+  display:flex;gap:5px;align-items:flex-start;padding-top:1px;flex-shrink:0;
+}
+@media(max-width:600px){.task-actions{opacity:1;}}
 
-  /* Note preview inline */
-  .note-preview {
-    font-size: 13px; color: var(--g-dimmer); margin-top: 6px;
-    border-left: 2px solid var(--g-border); padding-left: 8px;
-    white-space: pre-wrap; word-break: break-word; line-height: 1.45;
-    font-family: var(--mono); letter-spacing: 0.3px;
-  }
+.empty-state{
+  padding:48px 24px;text-align:center;
+  font-family:'Orbitron',monospace;font-size:13px;letter-spacing:2px;
+  color:var(--muted);
+}
+.empty-state::before{content:'◈';display:block;font-size:28px;margin-bottom:12px;opacity:0.3;}
 
-  .empty-state { padding: 40px; text-align: center; font-size: 18px; color: var(--g-dimmer); letter-spacing: 2px; }
-  .btn.del-confirm { border-color: var(--g-err); color: var(--g-err); animation: pulse-red 0.4s ease; }
-  @keyframes pulse-red { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
-  #footer { margin-top: 14px; font-size: 12px; color: var(--g-dimmer); letter-spacing: 1px; }
+/* ── Modals ── */
+.modal-bg{
+  display:none;position:fixed;inset:0;z-index:1000;
+  background:rgba(4,5,15,0.85);backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;padding:16px;
+}
+.modal-bg.open{display:flex;}
+.modal{
+  background:linear-gradient(135deg,rgba(8,11,26,0.95),rgba(12,8,28,0.95));
+  border:1px solid var(--border2);border-radius:20px;
+  padding:28px;width:min(520px,100%);
+  box-shadow:0 0 60px rgba(180,79,255,0.2),0 24px 64px rgba(0,0,0,0.6);
+  max-height:90vh;overflow-y:auto;
+}
+.modal-title{
+  font-family:'Orbitron',monospace;font-size:14px;font-weight:700;
+  letter-spacing:2px;color:var(--cyan);margin-bottom:20px;
+  padding-bottom:14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.modal-title::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);flex-shrink:0;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
 
-  /* Modals */
-  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 2000; align-items: center; justify-content: center; }
-  .modal-bg.open { display: flex; }
-  .modal { background: var(--g-bg); border: 1px solid var(--g-mid); padding: 24px; width: min(500px,92vw); box-shadow: 0 0 40px rgba(0,255,65,0.12); max-height: 90vh; overflow-y: auto; }
-  .modal-title { font-size: 20px; color: var(--g-bright); letter-spacing: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--g-border); padding-bottom: 10px; }
-  #cat-list { max-height: 200px; overflow-y: auto; margin-bottom: 14px; }
-  .cat-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--g-border); font-size: 16px; color: var(--g-mid); }
-  .modal-input-row { display: flex; gap: 8px; margin-bottom: 16px; }
-  .modal-input-row input { flex: 1; border: 1px solid var(--g-border); padding: 6px 10px; font-size: 16px; color: var(--g-bright); background: transparent; font-family: var(--mono); outline: none; }
-  .modal-input-row input::placeholder { color: var(--g-dimmer); }
-  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-  #note-modal textarea { width: 100%; border: 1px solid var(--g-border); padding: 10px; min-height: 130px; resize: vertical; font-size: 15px; color: var(--g-mid); background: transparent; font-family: var(--mono); outline: none; line-height: 1.6; display: block; margin-bottom: 14px; }
-  #note-modal-subtitle { font-size: 14px; color: var(--g-dim); letter-spacing: 1px; margin-bottom: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Modal inputs */
+.modal input[type="text"]{
+  width:100%;background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);border-radius:10px;
+  padding:10px 14px;color:var(--text);font-family:'Rajdhani',sans-serif;
+  font-size:15px;font-weight:500;outline:none;
+  transition:border-color 0.18s;
+}
+.modal input[type="text"]:focus{border-color:var(--cyan);}
+.modal input::placeholder{color:var(--muted);}
+.modal textarea{
+  width:100%;background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;color:var(--text);font-family:'Rajdhani',sans-serif;
+  font-size:14px;font-weight:500;outline:none;
+  min-height:130px;resize:vertical;line-height:1.6;display:block;
+  transition:border-color 0.18s;
+}
+.modal textarea:focus{border-color:var(--purple);}
+.modal textarea::placeholder{color:var(--muted);}
+.modal-input-row{display:flex;gap:8px;margin-bottom:14px;}
+.modal-input-row input{flex:1;}
 
-  /* IO modal */
-  #io-status { font-size: 14px; letter-spacing: 1px; min-height: 20px; margin-bottom: 12px; padding: 6px 10px; border: 1px solid var(--g-border); color: var(--g-dim); display: none; }
-  #io-status.ok  { color: var(--g-bright); border-color: var(--g-mid); display: block; }
-  #io-status.err { color: var(--g-err); border-color: var(--g-err); display: block; }
-  .io-section { border: 1px solid var(--g-border); padding: 14px; margin-bottom: 14px; }
-  .io-section-title { font-size: 13px; color: var(--g-dim); letter-spacing: 2px; margin-bottom: 10px; }
-  .io-section p { font-size: 13px; color: var(--g-dimmer); letter-spacing: 1px; margin-bottom: 10px; line-height: 1.5; }
-  #import-file-label { display: inline-block; border: 1px solid var(--g-border); color: var(--g-dim); padding: 4px 14px; cursor: pointer; font-family: var(--mono); font-size: 14px; letter-spacing: 1px; transition: all 0.1s; }
-  #import-file-label:hover { border-color: var(--g-mid); color: var(--g-bright); }
-  #import-file { display: none; }
-  #import-filename { font-size: 13px; color: var(--g-dimmer); margin-top: 6px; letter-spacing: 1px; }
+/* Cat list in modal */
+#cat-list{max-height:200px;overflow-y:auto;margin-bottom:16px;}
+.cat-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--border);
+  font-size:14px;font-weight:600;color:var(--text);letter-spacing:0.5px;
+}
+.cat-item:last-child{border-bottom:none;}
 
-  /* Setup modal */
-  #setup-modal .modal { border-color: var(--g-warn); }
-  #setup-modal .modal-title { color: var(--g-warn); }
-  #setup-key-input { width: 100%; border: 1px solid var(--g-border); padding: 8px 10px; font-size: 15px; color: var(--g-bright); background: transparent; font-family: var(--mono); outline: none; margin-bottom: 8px; letter-spacing: 1px; }
-  #setup-key-input::placeholder { color: var(--g-dimmer); }
-  .setup-note { font-size: 13px; color: var(--g-dimmer); letter-spacing: 1px; margin-bottom: 14px; line-height: 1.8; }
-  .setup-note a { color: var(--g-dim); }
-  #setup-error { color: var(--g-err); font-size: 13px; min-height: 18px; margin-bottom: 10px; letter-spacing: 1px; }
+/* Note modal subtitle */
+#note-modal-subtitle{
+  font-size:13px;color:var(--muted);letter-spacing:0.5px;
+  margin-bottom:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-weight:500;
+}
+
+/* IO modal */
+#io-status{
+  font-size:13px;letter-spacing:0.5px;padding:10px 14px;
+  border-radius:8px;margin-bottom:14px;font-weight:600;display:none;
+}
+#io-status.ok{background:rgba(0,255,170,0.08);border:1px solid rgba(0,255,170,0.3);color:var(--success);display:block;}
+#io-status.err{background:rgba(255,51,85,0.08);border:1px solid rgba(255,51,85,0.3);color:var(--err);display:block;}
+.io-section{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.io-section-title{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;}
+.io-section p{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6;font-weight:400;}
+#import-file-label{
+  display:inline-block;border:1px solid var(--border2);border-radius:8px;
+  color:var(--purple);padding:6px 14px;cursor:pointer;
+  font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:0.5px;transition:all 0.18s;
+}
+#import-file-label:hover{border-color:var(--purple);background:rgba(180,79,255,0.08);box-shadow:0 0 12px rgba(180,79,255,0.2);}
+#import-file{display:none;}
+#import-filename{font-size:12px;color:var(--muted);margin-top:8px;letter-spacing:0.5px;}
+
+/* Footer */
+#footer{margin-top:16px;font-size:12px;color:var(--muted);letter-spacing:0.5px;text-align:center;opacity:0.6;}
 </style>
 </head>
 <body>
-
-<div id="scanlines"></div>
-<div id="scanline-sweep"></div>
-
 <div id="app">
+
+  <!-- Header -->
   <div id="header">
-    <div>
-      <h1>██ TASK MANAGER <span class="cursor">█</span></h1>
-      <div class="sub" id="header-sub">JAY WARREN // 0 OPEN // 0 ARCHIVED</div>
-    </div>
-    <div class="clock-col">
-      <div id="clock">00:00:00</div>
-      <div id="sync-status">
-        <span id="sync-spinner"></span><span id="sync-text">OFFLINE</span>
+    <div class="header-top">
+      <div>
+        <h1>TASK MANAGER</h1>
+        <div class="header-meta" id="header-sub">JAY WARREN &nbsp;·&nbsp; 0 OPEN &nbsp;·&nbsp; 0 ARCHIVED</div>
+      </div>
+      <div class="clock-col">
+        <div id="clock">00:00:00</div>
+        <div id="sync-status"><span id="sync-spinner"></span><span id="sync-text">OFFLINE</span></div>
       </div>
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-label">// NEW TASK INPUT</div>
-    <div class="field-row">
-      <span class="prompt">$</span>
-      <input type="text" id="new-title" placeholder="TASK DESCRIPTION..." autocomplete="off" />
+  <!-- Add Task -->
+  <div class="card">
+    <div class="card-header">NEW TASK</div>
+    <div class="form-title-row">
+      <span class="form-prompt">›</span>
+      <input type="text" id="new-title" placeholder="What needs to get done?" autocomplete="off"/>
     </div>
-    <div class="meta-row">
-      <select id="new-cat"></select>
-      <div class="date-group">
-        <label for="new-due">DUE DATE</label>
-        <input type="date" id="new-due" />
+    <div class="form-meta">
+      <select class="form-select" id="new-cat"></select>
+      <div class="date-wrap">
+        <span class="due-label">DUE DATE</span>
+        <input type="date" id="new-due"/>
       </div>
-      <button class="btn" id="toggle-note-btn" onclick="toggleNoteField()">[+NOTE]</button>
-      <button class="btn primary" onclick="addTask()" style="margin-left:auto;">[ADD TASK]</button>
+      <button class="btn btn-note btn-sm" id="toggle-note-btn" onclick="toggleNoteField()">+ NOTE</button>
+      <button class="btn btn-primary btn-sm" onclick="addTask()" style="margin-left:auto;">ADD TASK</button>
     </div>
-    <textarea id="new-note" placeholder="// NOTES..." style="display:none;"></textarea>
+    <div class="form-note-area" id="form-note-area">
+      <textarea id="new-note" placeholder="Add notes..."></textarea>
+    </div>
   </div>
 
+  <!-- Toolbar -->
   <div id="toolbar">
-    <button class="btn active" id="btn-active" onclick="switchView('active')">[TASKS:0]</button>
-    <button class="btn" id="btn-archived" onclick="switchView('archived')">[ARCHIVE:0]</button>
-    <button class="btn" onclick="openCatMgr()" style="color:var(--g-dim);">[MANAGE CATS]</button>
-    <button class="btn" onclick="openIOMgr()" style="color:var(--g-dim);">[DATA]</button>
-    <div id="cat-filters"></div>
+    <button class="btn active" id="btn-active" onclick="switchView('active')">TASKS</button>
+    <button class="btn" id="btn-archived" onclick="switchView('archived')">ARCHIVE</button>
+    <button class="btn btn-sm" onclick="openCatMgr()" style="color:var(--purple);border-color:var(--border2);">CATEGORIES</button>
+    <button class="btn btn-sm" onclick="openIOMgr()" style="color:var(--muted);">DATA</button>
+    <div class="toolbar-right">
+      <div id="cat-filters"></div>
+    </div>
   </div>
 
+  <!-- Task List -->
   <div id="task-list-wrap">
     <div class="list-header">
       <span>≡</span><span>✓</span><span>TASK</span><span>ACTIONS</span>
@@ -276,21 +415,21 @@
     <div id="task-list"></div>
   </div>
 
-  <div id="footer">// DRAG ≡ TO REORDER · CHECK BOX TO ARCHIVE · HOVER FOR ACTIONS</div>
+  <div id="footer">Tap title to edit · Drag ≡ to reorder · Check ✓ to archive</div>
 </div>
 
-<!-- Category Manager Modal -->
+<!-- Category Manager -->
 <div class="modal-bg" id="cat-modal">
   <div class="modal">
-    <div class="modal-title">░ MANAGE CATEGORIES</div>
+    <div class="modal-title">MANAGE CATEGORIES</div>
     <div id="cat-list"></div>
     <div class="modal-input-row">
-      <input type="text" id="new-cat-input" placeholder="NEW CATEGORY NAME..." />
-      <button class="btn active" onclick="addCat()">[ADD]</button>
+      <input type="text" id="new-cat-input" placeholder="New category name..."/>
+      <button class="btn btn-sm active" onclick="addCat()">ADD</button>
     </div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeCatMgr()">[CANCEL]</button>
-      <button class="btn primary" onclick="saveCats()">[SAVE]</button>
+      <button class="btn btn-sm" onclick="closeCatMgr()">CANCEL</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCats()">SAVE</button>
     </div>
   </div>
 </div>
@@ -298,12 +437,12 @@
 <!-- Note Modal -->
 <div class="modal-bg" id="note-modal">
   <div class="modal">
-    <div class="modal-title">░ EDIT NOTE</div>
+    <div class="modal-title">EDIT NOTE</div>
     <div id="note-modal-subtitle"></div>
-    <textarea id="note-modal-text" placeholder="// NOTES..."></textarea>
+    <textarea id="note-modal-text" placeholder="Add notes..."></textarea>
     <div class="modal-actions">
-      <button class="btn" onclick="closeNoteModal()">[CANCEL]</button>
-      <button class="btn primary" onclick="saveNote()">[SAVE]</button>
+      <button class="btn btn-sm" onclick="closeNoteModal()">CANCEL</button>
+      <button class="btn btn-primary btn-sm" onclick="saveNote()">SAVE NOTE</button>
     </div>
   </div>
 </div>
@@ -311,25 +450,25 @@
 <!-- Import/Export Modal -->
 <div class="modal-bg" id="io-modal">
   <div class="modal">
-    <div class="modal-title">░ DATA / IMPORT-EXPORT</div>
+    <div class="modal-title">DATA &amp; BACKUP</div>
     <div id="io-status"></div>
     <div class="io-section">
-      <div class="io-section-title">// EXPORT</div>
-      <p>SAVES ALL TASKS, ARCHIVE, AND CATEGORIES TO A .JSON FILE.</p>
-      <button class="btn primary" onclick="exportData()">[EXPORT BACKUP]</button>
+      <div class="io-section-title">EXPORT</div>
+      <p>Download all tasks, archive, and categories as a JSON backup file.</p>
+      <button class="btn btn-primary btn-sm" onclick="exportData()">EXPORT BACKUP</button>
     </div>
     <div class="io-section">
-      <div class="io-section-title">// IMPORT</div>
-      <p>LOAD A PREVIOUSLY EXPORTED .JSON FILE.<br>WARNING: THIS WILL REPLACE ALL CURRENT DATA.</p>
-      <label id="import-file-label" for="import-file">[SELECT FILE]</label>
-      <input type="file" id="import-file" accept=".json" onchange="handleImportFile(event)" />
-      <div id="import-filename">NO FILE SELECTED</div>
-      <div style="margin-top:10px;">
-        <button class="btn danger" id="import-confirm-btn" onclick="confirmImport()" style="display:none;">[CONFIRM IMPORT — OVERWRITES DATA]</button>
+      <div class="io-section-title">IMPORT</div>
+      <p>Load a previously exported file. This will overwrite all current data.</p>
+      <label id="import-file-label" for="import-file">SELECT FILE</label>
+      <input type="file" id="import-file" accept=".json" onchange="handleImportFile(event)"/>
+      <div id="import-filename">No file selected</div>
+      <div style="margin-top:12px;">
+        <button class="btn btn-danger btn-sm" id="import-confirm-btn" onclick="confirmImport()" style="display:none;">CONFIRM IMPORT — OVERWRITES DATA</button>
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeIOMgr()">[CLOSE]</button>
+      <button class="btn btn-sm" onclick="closeIOMgr()">CLOSE</button>
     </div>
   </div>
 </div>
@@ -341,21 +480,20 @@ const JSONBIN_BIN = '69b9e772b7ec241ddc79fbf1';
 const JB = 'https://api.jsonbin.io/v3';
 
 // ── State ───────────────────────────────────────────────────────────────────
-let tasks    = [];
-let archived = [];
-let cats     = [
+let tasks=[], archived=[], cats=[
   {id:'inv',label:'INVESTIGATION'},{id:'ops',label:'ER OPS'},
   {id:'proj',label:'PROJECTS'},{id:'admin',label:'ADMIN'},{id:'other',label:'OTHER'}
 ];
-let view='active', filterCat='all', noteTargetId=null, tempCats=[], noteFieldOpen=false;
-let pendingImport=null, syncTimer=null, dragSrcId=null, touchDropId=null;
+let view='active',filterCat='all',noteTargetId=null,tempCats=[],noteFieldOpen=false;
+let pendingImport=null,syncTimer=null,dragSrcId=null,touchDropId=null;
+let deleteConfirmId=null,deleteConfirmTimer=null;
+let editingTaskId=null;
 
 // ── Local storage ───────────────────────────────────────────────────────────
 const loadLocal=()=>{
-  tasks    = JSON.parse(localStorage.getItem('tm_tasks')||'[]');
-  archived = JSON.parse(localStorage.getItem('tm_archived')||'[]');
-  const c  = localStorage.getItem('tm_cats');
-  if(c) cats = JSON.parse(c);
+  tasks=JSON.parse(localStorage.getItem('tm_tasks')||'[]');
+  archived=JSON.parse(localStorage.getItem('tm_archived')||'[]');
+  const c=localStorage.getItem('tm_cats'); if(c) cats=JSON.parse(c);
 };
 const saveLocal=()=>{
   localStorage.setItem('tm_tasks',JSON.stringify(tasks));
@@ -365,11 +503,9 @@ const saveLocal=()=>{
 
 // ── Cloud sync ──────────────────────────────────────────────────────────────
 const setSyncStatus=(state,text)=>{
-  const el=document.getElementById('sync-status');
-  const sp=document.getElementById('sync-text');
+  const el=document.getElementById('sync-status'),sp=document.getElementById('sync-text');
   el.className=state; sp.textContent=text;
 };
-
 const cloudLoad=async()=>{
   setSyncStatus('syncing','LOADING...');
   try{
@@ -378,11 +514,8 @@ const cloudLoad=async()=>{
     const d=(await r.json()).record;
     tasks=d.tasks||[]; archived=d.archived||[]; cats=d.cats||cats;
     saveLocal(); setSyncStatus('ok','SYNCED ✓');
-  }catch{
-    setSyncStatus('err','LOAD ERR'); loadLocal();
-  }
+  }catch{ setSyncStatus('err','LOAD ERR'); loadLocal(); }
 };
-
 const cloudSave=async()=>{
   setSyncStatus('syncing','SAVING...');
   saveLocal();
@@ -396,20 +529,15 @@ const cloudSave=async()=>{
     setSyncStatus('ok','SAVED ✓');
   }catch{ setSyncStatus('err','SAVE ERR'); }
 };
-
-
-
 const save=()=>{ clearTimeout(syncTimer); syncTimer=setTimeout(cloudSave,800); };
-
-// ── Setup modal removed (credentials hardcoded) ────────────────────────────
 
 // ── Clock ───────────────────────────────────────────────────────────────────
 const tick=()=>{ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false}); };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-const genId =()=>Math.random().toString(36).slice(2,10);
+const genId=()=>Math.random().toString(36).slice(2,10);
 const getCat=(id)=>cats.find(c=>c.id===id);
-const esc   =(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmtDate=(d)=>{ if(!d) return null; return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
 const isOverdue=(d)=>{ if(!d) return false; const t=new Date();t.setHours(0,0,0,0);return new Date(d+'T00:00:00')<t; };
 const isDueSoon=(d)=>{ if(!d) return false; const t=new Date();t.setHours(0,0,0,0);const diff=(new Date(d+'T00:00:00')-t)/86400000;return diff>=0&&diff<=2; };
@@ -420,22 +548,22 @@ const render=()=>{ renderHeader();renderCatSelect();renderCatFilters();renderVie
 
 const renderHeader=()=>{
   const open=tasks.filter(t=>!t.done).length;
-  document.getElementById('header-sub').textContent=`JAY WARREN // ${open} OPEN // ${archived.length} ARCHIVED`;
+  document.getElementById('header-sub').innerHTML=`JAY WARREN &nbsp;·&nbsp; ${open} OPEN &nbsp;·&nbsp; ${archived.length} ARCHIVED`;
 };
 const renderCatSelect=()=>{
-  const sel=document.getElementById('new-cat'), cur=sel.value;
+  const sel=document.getElementById('new-cat'),cur=sel.value;
   sel.innerHTML=cats.map(c=>`<option value="${esc(c.id)}"${c.id===cur?' selected':''}>${esc(c.label)}</option>`).join('');
 };
 const renderCatFilters=()=>{
-  const opts=[{id:'all',label:'ALL CATEGORIES'},...cats];
+  const opts=[{id:'all',label:'All Categories'},...cats];
   document.getElementById('cat-filters').innerHTML=
     `<select id="cat-filter-select" onchange="setFilter(this.value)">
       ${opts.map(c=>`<option value="${esc(c.id)}"${filterCat===c.id?' selected':''}>${esc(c.label)}</option>`).join('')}
     </select>`;
 };
 const renderViewButtons=()=>{
-  document.getElementById('btn-active').textContent=`[TASKS:${tasks.length}]`;
-  document.getElementById('btn-archived').textContent=`[ARCHIVE:${archived.length}]`;
+  document.getElementById('btn-active').textContent=`TASKS (${tasks.length})`;
+  document.getElementById('btn-archived').textContent=`ARCHIVE (${archived.length})`;
   document.getElementById('btn-active').className='btn'+(view==='active'?' active':'');
   document.getElementById('btn-archived').className='btn'+(view==='archived'?' active':'');
 };
@@ -445,17 +573,18 @@ const renderList=()=>{
   const filtered=source.filter(t=>filterCat==='all'||t.category===filterCat);
   if(view==='active'){
     filtered.sort((a,b)=>{
-      // Done tasks always go to bottom
       if(a.done!==b.done) return a.done?1:-1;
-      // Among active tasks: dated tasks sort by date, undated keep array order (manual drag order)
-      const aHas=!!a.dueDate, bHas=!!b.dueDate;
-      if(aHas&&bHas) return new Date(a.dueDate)-new Date(b.dueDate);
-      if(aHas&&!bHas) return -1; // dated before undated
-      if(!aHas&&bHas) return 1;
-      return 0; // both undated: preserve drag order
+      const aH=!!a.dueDate,bH=!!b.dueDate;
+      if(aH&&bH) return new Date(a.dueDate)-new Date(b.dueDate);
+      if(aH&&!bH) return -1;
+      if(!aH&&bH) return 1;
+      return 0;
     });
   }
-  if(!filtered.length){ listEl.innerHTML=`<div class="empty-state">// ${view==='active'?'NO TASKS FOUND':'ARCHIVE EMPTY'}_</div>`; return; }
+  if(!filtered.length){
+    listEl.innerHTML=`<div class="empty-state">${view==='active'?'No tasks yet. Add one above.':'Archive is empty.'}</div>`;
+    return;
+  }
   listEl.innerHTML=filtered.map(t=>taskRowHTML(t)).join('');
   if(view==='active') initDragDrop();
 };
@@ -466,49 +595,77 @@ const taskRowHTML=(t)=>{
   const soon=isDueSoon(t.dueDate)&&!t.done;
   const dueStr=fmtDate(t.dueDate);
   const dueClass=over?'due overdue':soon?'due soon':'due';
-  const prefix=t.done?'// ':'&gt; ';
   const preview=notePreview(t.note);
   const draggable=view==='active'?'draggable="true"':'';
   const handle=view==='active'?`<div class="drag-handle" title="Drag to reorder">≡</div>`:`<div></div>`;
-  const archBtn=view==='archived'?`<button class="btn success" onclick="unarchiveTask('${t.id}')">[UNARCH]</button>`:'';
+  const archBtn=view==='archived'?`<button class="btn btn-success btn-sm" onclick="unarchiveTask('${t.id}')">RESTORE</button>`:'';
 
   return `<div class="task-row" id="row-${t.id}" ${draggable} data-id="${t.id}">
     ${handle}
     <div class="check-box${t.done?' checked':''}"
       onclick="${view==='active'?`archiveTask('${t.id}')`:`unarchiveTask('${t.id}')`}"
-      title="${view==='active'?'Check to archive':'Unarchive'}">${t.done?'█':''}</div>
-    <div>
-      <div class="task-title${t.done?' done':''}">${prefix}${esc(t.title)}</div>
+      title="${view==='active'?'Check to archive':'Restore task'}"></div>
+    <div style="min-width:0;">
+      <div class="task-title${t.done?' done':''}" onclick="startEdit('${t.id}')" title="Click to edit">${esc(t.title)}</div>
       <div class="task-meta">
-        ${cat?`<span class="tag">[${esc(cat.label)}]</span>`:''}
-        ${dueStr?`<span class="${dueClass}">${over?'!! ':soon?'! ':''}DUE:${dueStr}</span>`:''}
+        ${cat?`<span class="tag">${esc(cat.label)}</span>`:''}
+        ${dueStr?`<span class="${dueClass}">${over?'⚠ ':soon?'! ':''}${dueStr}</span>`:''}
       </div>
       ${preview?`<div class="note-preview">${esc(preview)}</div>`:''}
     </div>
-    <div class="actions">
-      <button class="btn" onclick="openNoteModal('${t.id}')">[NOTE]</button>
+    <div class="task-actions">
+      <button class="btn btn-note btn-sm" onclick="openNoteModal('${t.id}')">NOTE</button>
       ${archBtn}
-      <button class="btn danger" id="del-${t.id}" onclick="confirmDelete('${t.id}')">[DEL]</button>
+      <button class="btn btn-danger btn-sm" id="del-${t.id}" onclick="confirmDelete('${t.id}')">DEL</button>
     </div>
   </div>`;
+};
+
+// ── Inline Edit ─────────────────────────────────────────────────────────────
+const startEdit=(id)=>{
+  if(editingTaskId) cancelEdit(editingTaskId);
+  const task=[...tasks,...archived].find(t=>t.id===id); if(!task) return;
+  editingTaskId=id;
+  const titleEl=document.querySelector(`#row-${id} .task-title`);
+  if(!titleEl) return;
+  const input=document.createElement('input');
+  input.type='text'; input.className='task-title-input';
+  input.value=task.title;
+  titleEl.replaceWith(input);
+  input.focus(); input.select();
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){ e.preventDefault(); commitEdit(id,input.value); }
+    if(e.key==='Escape'){ cancelEdit(id); }
+  });
+  input.addEventListener('blur',()=>{ commitEdit(id,input.value); });
+};
+
+const commitEdit=(id,newTitle)=>{
+  const trimmed=newTitle.trim();
+  if(trimmed){
+    const up=arr=>arr.map(t=>t.id===id?{...t,title:trimmed}:t);
+    tasks=up(tasks); archived=up(archived);
+    save();
+  }
+  editingTaskId=null;
+  render();
+};
+
+const cancelEdit=(id)=>{
+  editingTaskId=null;
+  render();
 };
 
 // ── Drag & Drop ─────────────────────────────────────────────────────────────
 const initDragDrop=()=>{
   const list=document.getElementById('task-list');
-  // Remove old listeners by cloning (clean slate on each render)
   const fresh=list.cloneNode(true);
   list.parentNode.replaceChild(fresh,list);
   const el=document.getElementById('task-list');
 
-  // Mouse drag — attach to each row
   el.querySelectorAll('.task-row[draggable]').forEach(row=>{
-    const handle=row.querySelector('.drag-handle');
-    // Only start drag from handle
     row.addEventListener('dragstart',e=>{
-      if(!e.target.classList.contains('drag-handle')&&!e.target.closest('.drag-handle')){
-        e.preventDefault(); return;
-      }
+      if(!e.target.classList.contains('drag-handle')&&!e.target.closest('.drag-handle')){e.preventDefault();return;}
       dragSrcId=row.dataset.id;
       setTimeout(()=>row.classList.add('dragging'),0);
       e.dataTransfer.effectAllowed='move';
@@ -517,31 +674,20 @@ const initDragDrop=()=>{
     row.addEventListener('dragend',()=>{ row.classList.remove('dragging'); clearDragOver(); });
     row.addEventListener('dragover',e=>{ e.preventDefault(); clearDragOver(); if(row.dataset.id!==dragSrcId) row.classList.add('drag-over'); });
     row.addEventListener('drop',e=>{
-      e.preventDefault();
-      const tgt=row.dataset.id;
-      clearDragOver();
+      e.preventDefault(); const tgt=row.dataset.id; clearDragOver();
       if(dragSrcId&&dragSrcId!==tgt) reorderTasks(dragSrcId,tgt);
       dragSrcId=null;
     });
   });
 
-  // Touch drag — attach to handles only
   el.querySelectorAll('.drag-handle').forEach(handle=>{
     const row=handle.closest('.task-row');
-    handle.addEventListener('touchstart',e=>{
-      dragSrcId=row.dataset.id;
-      row.classList.add('dragging');
-      e.preventDefault();
-    },{passive:false});
+    handle.addEventListener('touchstart',e=>{ dragSrcId=row.dataset.id; row.classList.add('dragging'); e.preventDefault(); },{passive:false});
     handle.addEventListener('touchmove',e=>{
-      e.preventDefault();
-      const y=e.touches[0].clientY;
-      clearDragOver(); touchDropId=null;
+      e.preventDefault(); const y=e.touches[0].clientY; clearDragOver(); touchDropId=null;
       el.querySelectorAll('.task-row').forEach(r=>{
         const rect=r.getBoundingClientRect();
-        if(y>=rect.top&&y<=rect.bottom&&r.dataset.id!==dragSrcId){
-          r.classList.add('drag-over'); touchDropId=r.dataset.id;
-        }
+        if(y>=rect.top&&y<=rect.bottom&&r.dataset.id!==dragSrcId){ r.classList.add('drag-over'); touchDropId=r.dataset.id; }
       });
     },{passive:false});
     handle.addEventListener('touchend',()=>{
@@ -553,7 +699,7 @@ const initDragDrop=()=>{
 };
 const clearDragOver=()=>document.querySelectorAll('.task-row').forEach(r=>r.classList.remove('drag-over'));
 const reorderTasks=(srcId,tgtId)=>{
-  const si=tasks.findIndex(t=>t.id===srcId), ti=tasks.findIndex(t=>t.id===tgtId);
+  const si=tasks.findIndex(t=>t.id===srcId),ti=tasks.findIndex(t=>t.id===tgtId);
   if(si===-1||ti===-1) return;
   const [m]=tasks.splice(si,1); tasks.splice(ti,0,m);
   save(); render();
@@ -561,9 +707,11 @@ const reorderTasks=(srcId,tgtId)=>{
 
 // ── Task actions ─────────────────────────────────────────────────────────────
 const addTask=()=>{
-  const title=document.getElementById('new-title').value.trim();
-  if(!title) return;
-  tasks.unshift({id:genId(),title,category:document.getElementById('new-cat').value,dueDate:document.getElementById('new-due').value,note:document.getElementById('new-note').value.trim(),done:false,createdAt:new Date().toISOString()});
+  const title=document.getElementById('new-title').value.trim(); if(!title) return;
+  tasks.unshift({id:genId(),title,category:document.getElementById('new-cat').value,
+    dueDate:document.getElementById('new-due').value,
+    note:document.getElementById('new-note').value.trim(),
+    done:false,createdAt:new Date().toISOString()});
   save();
   document.getElementById('new-title').value='';
   document.getElementById('new-due').value='';
@@ -586,29 +734,19 @@ const deleteTask=(id)=>{
   else archived=archived.filter(t=>t.id!==id);
   save(); render();
 };
-let deleteConfirmId=null, deleteConfirmTimer=null;
 const confirmDelete=(id)=>{
-  const btn=document.getElementById('del-'+id);
-  if(!btn) return;
+  const btn=document.getElementById('del-'+id); if(!btn) return;
   if(deleteConfirmId===id){
-    // Second click — actually delete
-    clearTimeout(deleteConfirmTimer);
-    deleteConfirmId=null;
-    deleteTask(id);
+    clearTimeout(deleteConfirmTimer); deleteConfirmId=null; deleteTask(id);
   } else {
-    // First click — arm it
     if(deleteConfirmId){
-      // Reset any previously armed button
       const old=document.getElementById('del-'+deleteConfirmId);
-      if(old){old.textContent='[DEL]';old.classList.remove('del-confirm');}
+      if(old){old.textContent='DEL';old.classList.remove('armed');}
     }
-    deleteConfirmId=id;
-    btn.textContent='[CONFIRM?]';
-    btn.classList.add('del-confirm');
+    deleteConfirmId=id; btn.textContent='CONFIRM?'; btn.classList.add('armed');
     deleteConfirmTimer=setTimeout(()=>{
-      // Auto-disarm after 3s
       const b=document.getElementById('del-'+id);
-      if(b){b.textContent='[DEL]';b.classList.remove('del-confirm');}
+      if(b){b.textContent='DEL';b.classList.remove('armed');}
       deleteConfirmId=null;
     },3000);
   }
@@ -617,17 +755,17 @@ const switchView=(v)=>{ view=v; render(); };
 const setFilter=(c)=>{ filterCat=c; render(); };
 const toggleNoteField=()=>{
   noteFieldOpen=!noteFieldOpen;
-  const el=document.getElementById('new-note'), btn=document.getElementById('toggle-note-btn');
+  const el=document.getElementById('form-note-area'),btn=document.getElementById('toggle-note-btn');
   el.style.display=noteFieldOpen?'block':'none';
   btn.classList.toggle('active',noteFieldOpen);
-  if(noteFieldOpen) el.focus();
+  if(noteFieldOpen) document.getElementById('new-note').focus();
 };
 
 // ── Note modal ───────────────────────────────────────────────────────────────
 const openNoteModal=(id)=>{
   const task=[...tasks,...archived].find(t=>t.id===id); if(!task) return;
   noteTargetId=id;
-  document.getElementById('note-modal-subtitle').textContent='// '+task.title;
+  document.getElementById('note-modal-subtitle').textContent=task.title;
   document.getElementById('note-modal-text').value=task.note||'';
   document.getElementById('note-modal').classList.add('open');
   setTimeout(()=>document.getElementById('note-modal-text').focus(),50);
@@ -645,12 +783,15 @@ const openCatMgr=()=>{ tempCats=cats.map(c=>({...c})); renderCatModalList(); doc
 const closeCatMgr=()=>document.getElementById('cat-modal').classList.remove('open');
 const renderCatModalList=()=>{
   const el=document.getElementById('cat-list');
-  if(!tempCats.length){el.innerHTML=`<div style="color:var(--g-dimmer);font-size:14px;padding:8px 0;">No categories yet.</div>`;return;}
-  el.innerHTML=tempCats.map(c=>`<div class="cat-item"><span>▸ ${esc(c.label)}</span><button class="btn danger" style="font-size:12px;" onclick="removeTempCat('${c.id}')">[DEL]</button></div>`).join('');
+  if(!tempCats.length){el.innerHTML=`<div style="color:var(--muted);font-size:13px;padding:8px 0;">No categories yet.</div>`;return;}
+  el.innerHTML=tempCats.map(c=>`
+    <div class="cat-item">
+      <span>${esc(c.label)}</span>
+      <button class="btn btn-danger btn-sm" onclick="removeTempCat('${c.id}')">REMOVE</button>
+    </div>`).join('');
 };
 const addCat=()=>{
-  const val=document.getElementById('new-cat-input').value.trim().toUpperCase();
-  if(!val) return;
+  const val=document.getElementById('new-cat-input').value.trim().toUpperCase(); if(!val) return;
   tempCats.push({id:genId(),label:val}); document.getElementById('new-cat-input').value=''; renderCatModalList();
 };
 const removeTempCat=(id)=>{ tempCats=tempCats.filter(c=>c.id!==id); renderCatModalList(); };
@@ -658,7 +799,7 @@ const saveCats=()=>{ cats=tempCats; save(); render(); closeCatMgr(); };
 
 // ── Import / Export ──────────────────────────────────────────────────────────
 const openIOMgr=()=>{
-  setIOStatus('',''); document.getElementById('import-filename').textContent='NO FILE SELECTED';
+  setIOStatus('',''); document.getElementById('import-filename').textContent='No file selected';
   document.getElementById('import-confirm-btn').style.display='none';
   document.getElementById('import-file').value=''; pendingImport=null;
   document.getElementById('io-modal').classList.add('open');
@@ -667,9 +808,9 @@ const closeIOMgr=()=>{ document.getElementById('io-modal').classList.remove('ope
 const setIOStatus=(msg,type)=>{ const el=document.getElementById('io-status'); el.textContent=msg; el.className=type; };
 const exportData=()=>{
   const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),tasks,archived,cats},null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob), a=document.createElement('a'), date=new Date().toISOString().slice(0,10);
+  const url=URL.createObjectURL(blob),a=document.createElement('a'),date=new Date().toISOString().slice(0,10);
   a.href=url; a.download=`task-manager-backup-${date}.json`; a.click(); URL.revokeObjectURL(url);
-  setIOStatus(`// EXPORTED: task-manager-backup-${date}.json`,'ok');
+  setIOStatus(`Exported: task-manager-backup-${date}.json`,'ok');
 };
 const handleImportFile=(e)=>{
   const file=e.target.files[0]; if(!file) return;
@@ -681,8 +822,8 @@ const handleImportFile=(e)=>{
       if(!data.tasks||!data.archived||!data.cats) throw new Error();
       pendingImport=data;
       document.getElementById('import-confirm-btn').style.display='inline-block';
-      setIOStatus('// FILE VALID — CLICK CONFIRM TO OVERWRITE','ok');
-    }catch{ pendingImport=null; document.getElementById('import-confirm-btn').style.display='none'; setIOStatus('// ERROR: INVALID OR CORRUPTED FILE','err'); }
+      setIOStatus('File valid — click Confirm to overwrite current data','ok');
+    }catch{ pendingImport=null; document.getElementById('import-confirm-btn').style.display='none'; setIOStatus('Error: invalid or corrupted file','err'); }
   };
   reader.readAsText(file);
 };
@@ -691,9 +832,9 @@ const confirmImport=()=>{
   tasks=pendingImport.tasks; archived=pendingImport.archived; cats=pendingImport.cats;
   save(); render(); pendingImport=null;
   document.getElementById('import-confirm-btn').style.display='none';
-  document.getElementById('import-filename').textContent='NO FILE SELECTED';
+  document.getElementById('import-filename').textContent='No file selected';
   document.getElementById('import-file').value='';
-  setIOStatus('// IMPORT COMPLETE — DATA LOADED SUCCESSFULLY','ok');
+  setIOStatus('Import complete — data loaded successfully','ok');
 };
 
 // ── Keyboard ─────────────────────────────────────────────────────────────────
@@ -701,11 +842,12 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeNoteModal();closeCatMgr();closeIOMgr();}
   if(e.key==='Enter'&&document.activeElement.id==='new-title'&&!noteFieldOpen) addTask();
   if(e.key==='Enter'&&document.activeElement.id==='new-cat-input') addCat();
-  });
-['cat-modal','note-modal','io-modal'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id){closeCatMgr();closeNoteModal();closeIOMgr();} });
 });
-// ── Boot ────────────────────────────────────────────────────────────────────
+['cat-modal','note-modal','io-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{if(e.target.id===id){closeCatMgr();closeNoteModal();closeIOMgr();}});
+});
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
 (async()=>{
   await cloudLoad();
   render();
