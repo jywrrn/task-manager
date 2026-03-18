@@ -64,11 +64,7 @@ h1{
   text-transform:uppercase;
 }
 .header-right{text-align:right;flex-shrink:0;}
-#clock{
-  font-family:'Space Mono',monospace;
-  font-size:13px;font-weight:700;
-  letter-spacing:1px;margin-bottom:5px;
-}
+/* clock removed */
 #sync-status{
   font-family:'Space Mono',monospace;
   font-size:10px;font-weight:700;letter-spacing:1px;
@@ -397,7 +393,7 @@ h1{
       <div class="header-sub" id="header-sub">Jay Warren &nbsp;·&nbsp; 0 open &nbsp;·&nbsp; 0 archived</div>
     </div>
     <div class="header-right">
-      <div id="clock">00:00:00</div>
+      <button onclick="refreshApp()" title="Refresh" style="font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border:2px solid var(--black);background:var(--white);color:var(--black);box-shadow:2px 2px 0 var(--black);cursor:pointer;margin-bottom:5px;display:block;width:100%;">↻ REFRESH</button>
       <div id="sync-status"><span id="sync-spinner"></span><span id="sync-text">OFFLINE</span></div>
     </div>
   </div>
@@ -410,7 +406,7 @@ h1{
       <input type="text" id="new-title" placeholder="What needs to get done?" autocomplete="off"/>
     </div>
     <div class="form-meta">
-      <select class="form-select" id="new-cat"></select>
+      <select class="form-select" id="new-cat" onchange="handleNewCatSelect(this)"></select>
       <div class="date-wrap">
         <span class="due-label">Due Date</span>
         <input type="date" id="new-due"/>
@@ -558,7 +554,7 @@ const cloudSave=async()=>{
 const save=()=>{ clearTimeout(syncTimer); syncTimer=setTimeout(cloudSave,800); };
 
 // ── Clock ───────────────────────────────────────────────────────────────────
-const tick=()=>{ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false}); };
+const tick=()=>{}; // clock removed
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const genId=()=>Math.random().toString(36).slice(2,10);
@@ -578,7 +574,10 @@ const renderHeader=()=>{
 };
 const renderCatSelect=()=>{
   const sel=document.getElementById('new-cat'),cur=sel.value;
-  sel.innerHTML=cats.map(c=>`<option value="${esc(c.id)}"${c.id===cur?' selected':''}>${esc(c.label)}</option>`).join('');
+  sel.innerHTML=
+    `<option value="" disabled${!cur||cur===''?' selected':''}>Choose category...</option>`+
+    cats.map(c=>`<option value="${esc(c.id)}"${c.id===cur?' selected':''}>${esc(c.label)}</option>`).join('')+
+    `<option value="__new__">+ New category...</option>`;
 };
 const renderCatFilters=()=>{
   const opts=[{id:'all',label:'All Categories'},...cats];
@@ -635,7 +634,7 @@ const taskRowHTML=(t)=>{
     <div style="min-width:0;">
       <div class="task-title${t.done?' done':''}" onclick="startEdit('${t.id}')" title="Click to edit">${esc(t.title)}</div>
       <div class="task-meta">
-        ${cat?`<span class="tag">${esc(cat.label)}</span>`:''}
+        ${cat?`<span class="tag" onclick="startEditCat('${t.id}')" title="Click to change category" style="cursor:pointer;">${esc(cat.label)}</span>`:`<span class="tag" onclick="startEditCat('${t.id}')" title="Click to set category" style="cursor:pointer;background:#ccc;">No category</span>`}
         ${dueStr?`<span class="${dueClass}" onclick="startEditDue('${t.id}')" title="Click to edit due date" style="cursor:pointer;">${over?'⚠ ':soon?'! ':''}${dueStr}</span>`:`<span class="due" onclick="startEditDue('${t.id}')" title="Click to set due date" style="cursor:pointer;color:#ccc;">+ due date</span>`}
       </div>
       ${preview?`<div class="note-preview">${esc(preview)}</div>`:''}
@@ -671,6 +670,69 @@ const commitEdit=(id,newTitle)=>{
 };
 const cancelEdit=(id)=>{ editingTaskId=null; render(); };
 
+// ── New Category from form ───────────────────────────────────────────────────
+const handleNewCatSelect=(sel)=>{
+  if(sel.value!=='__new__') return;
+  const name=prompt('New category name:');
+  if(!name||!name.trim()){ sel.value=''; renderCatSelect(); return; }
+  const label=name.trim().toUpperCase();
+  const id=genId();
+  cats.push({id,label});
+  save();
+  renderCatSelect();
+  renderCatFilters();
+  document.getElementById('new-cat').value=id;
+};
+
+// ── Edit task category inline ─────────────────────────────────────────────────
+const startEditCat=(id)=>{
+  const task=[...tasks,...archived].find(t=>t.id===id); if(!task) return;
+  const tagEl=document.querySelector(`#row-${id} .tag`);
+  // build a mini select in place of the tag
+  const sel=document.createElement('select');
+  sel.style.cssText='font-family:Space Mono,monospace;font-size:11px;font-weight:700;'+
+    'letter-spacing:0.5px;text-transform:uppercase;border:2px solid var(--black);'+
+    'background:var(--yellow);color:var(--black);padding:2px 4px;outline:none;'+
+    'box-shadow:2px 2px 0 var(--black);cursor:pointer;';
+  cats.forEach(c=>{
+    const opt=document.createElement('option');
+    opt.value=c.id; opt.textContent=c.label;
+    if(c.id===task.category) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  // add "new category" option
+  const newOpt=document.createElement('option');
+  newOpt.value='__new__'; newOpt.textContent='+ New category...';
+  sel.appendChild(newOpt);
+
+  const commit=(val)=>{
+    if(val==='__new__'){
+      const name=prompt('New category name:');
+      if(name&&name.trim()){
+        const label=name.trim().toUpperCase(), nid=genId();
+        cats.push({id:nid,label});
+        const up=arr=>arr.map(t=>t.id===id?{...t,category:nid}:t);
+        tasks=up(tasks); archived=up(archived);
+      }
+    } else {
+      const up=arr=>arr.map(t=>t.id===id?{...t,category:val}:t);
+      tasks=up(tasks); archived=up(archived);
+    }
+    save(); render();
+  };
+
+  sel.addEventListener('change',()=>commit(sel.value));
+  sel.addEventListener('blur',()=>render());
+  sel.addEventListener('keydown',e=>{ if(e.key==='Escape') render(); });
+
+  if(tagEl) tagEl.replaceWith(sel);
+  else {
+    const meta=document.querySelector(`#row-${id} .task-meta`);
+    if(meta) meta.prepend(sel);
+  }
+  sel.focus();
+};
+
 // ── Inline Due Date Edit ─────────────────────────────────────────────────────
 const startEditDue=(id)=>{
   const task=[...tasks,...archived].find(t=>t.id===id); if(!task) return;
@@ -702,22 +764,19 @@ const initDragDrop=()=>{
   const list=document.getElementById('task-list');
   const fresh=list.cloneNode(true); list.parentNode.replaceChild(fresh,list);
   const el=document.getElementById('task-list');
-  el.querySelectorAll('.task-row[draggable]').forEach(row=>{
-    row.addEventListener('dragstart',e=>{
-      if(!e.target.classList.contains('drag-handle')&&!e.target.closest('.drag-handle')){e.preventDefault();return;}
-      dragSrcId=row.dataset.id; setTimeout(()=>row.classList.add('dragging'),0);
-      e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',dragSrcId);
-    });
-    row.addEventListener('dragend',()=>{ row.classList.remove('dragging'); clearDragOver(); });
-    row.addEventListener('dragover',e=>{ e.preventDefault(); clearDragOver(); if(row.dataset.id!==dragSrcId) row.classList.add('drag-over'); });
-    row.addEventListener('drop',e=>{
-      e.preventDefault(); const tgt=row.dataset.id; clearDragOver();
-      if(dragSrcId&&dragSrcId!==tgt) reorderTasks(dragSrcId,tgt); dragSrcId=null;
-    });
-  });
+
+  // Desktop: make only the handle draggable by setting draggable on mousedown/up
   el.querySelectorAll('.drag-handle').forEach(handle=>{
     const row=handle.closest('.task-row');
-    handle.addEventListener('touchstart',e=>{ dragSrcId=row.dataset.id; row.classList.add('dragging'); e.preventDefault(); },{passive:false});
+
+    // Mouse: set draggable on row only while handle is held
+    handle.addEventListener('mousedown',()=>{ row.setAttribute('draggable','true'); });
+    document.addEventListener('mouseup',()=>{ row.setAttribute('draggable','false'); }, {once:false});
+
+    // Touch
+    handle.addEventListener('touchstart',e=>{
+      dragSrcId=row.dataset.id; row.classList.add('dragging'); e.preventDefault();
+    },{passive:false});
     handle.addEventListener('touchmove',e=>{
       e.preventDefault(); const y=e.touches[0].clientY; clearDragOver(); touchDropId=null;
       el.querySelectorAll('.task-row').forEach(r=>{
@@ -731,6 +790,33 @@ const initDragDrop=()=>{
       dragSrcId=null; touchDropId=null;
     });
   });
+
+  // Desktop drag events on rows
+  el.querySelectorAll('.task-row').forEach(row=>{
+    row.addEventListener('dragstart',e=>{
+      if(row.getAttribute('draggable')!=='true'){ e.preventDefault(); return; }
+      dragSrcId=row.dataset.id;
+      setTimeout(()=>row.classList.add('dragging'),0);
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',dragSrcId);
+    });
+    row.addEventListener('dragend',()=>{
+      row.setAttribute('draggable','false');
+      row.classList.remove('dragging');
+      clearDragOver();
+    });
+    row.addEventListener('dragover',e=>{
+      e.preventDefault();
+      clearDragOver();
+      if(row.dataset.id!==dragSrcId) row.classList.add('drag-over');
+    });
+    row.addEventListener('drop',e=>{
+      e.preventDefault();
+      const tgt=row.dataset.id; clearDragOver();
+      if(dragSrcId&&dragSrcId!==tgt) reorderTasks(dragSrcId,tgt);
+      dragSrcId=null;
+    });
+  });
 };
 const clearDragOver=()=>document.querySelectorAll('.task-row').forEach(r=>r.classList.remove('drag-over'));
 const reorderTasks=(srcId,tgtId)=>{
@@ -742,7 +828,9 @@ const reorderTasks=(srcId,tgtId)=>{
 // ── Task Actions ─────────────────────────────────────────────────────────────
 const addTask=()=>{
   const title=document.getElementById('new-title').value.trim(); if(!title) return;
-  tasks.unshift({id:genId(),title,category:document.getElementById('new-cat').value,
+  const catVal=document.getElementById('new-cat').value;
+  if(!catVal||catVal==='__new__'){ alert('Please choose a category before adding the task.'); return; }
+  tasks.unshift({id:genId(),title,category:catVal,
     dueDate:document.getElementById('new-due').value,
     note:document.getElementById('new-note').value.trim(),
     done:false,createdAt:new Date().toISOString()});
@@ -780,6 +868,11 @@ const confirmDelete=(id)=>{
 };
 const switchView=(v)=>{ view=v; render(); };
 const setFilter=(c)=>{ filterCat=c; render(); };
+const refreshApp=async()=>{
+  setSyncStatus('syncing','LOADING...');
+  await cloudLoad();
+  render();
+};
 const toggleNoteField=()=>{
   noteFieldOpen=!noteFieldOpen;
   const el=document.getElementById('form-note-area'),btn=document.getElementById('toggle-note-btn');
