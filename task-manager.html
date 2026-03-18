@@ -4,358 +4,387 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Task Manager</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
 :root {
+  --black:   #0a0a0a;
+  --white:   #fafaf5;
+  --yellow:  #ffe033;
+  --lime:    #c8f135;
+  --red:     #ff3333;
+  --orange:  #ff6b00;
+  --blue:    #1a1aff;
   --pink:    #ff2d78;
-  --cyan:    #00e5ff;
-  --purple:  #b44fff;
-  --orange:  #ff6a00;
-  --bg:      #04050f;
-  --bg2:     #080b1a;
-  --glass:   rgba(255,255,255,0.04);
-  --glass2:  rgba(255,255,255,0.07);
-  --border:  rgba(0,229,255,0.15);
-  --border2: rgba(180,79,255,0.25);
-  --text:    #e8eeff;
-  --muted:   rgba(232,238,255,0.45);
-  --warn:    #ffcc00;
-  --err:     #ff3355;
-  --success: #00ffaa;
+  --border:  3px solid var(--black);
+  --shadow:  4px 4px 0 var(--black);
+  --shadow-lg: 6px 6px 0 var(--black);
 }
 
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:16px;-webkit-tap-highlight-color:transparent;}
-::selection{background:var(--pink);color:#fff;}
-::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+html,body{
+  min-height:100%;
+  background:var(--white);
+  background-image: radial-gradient(var(--black) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color:var(--black);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:15px;
+  -webkit-tap-highlight-color:transparent;
+}
+::selection{background:var(--yellow);color:var(--black);}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--white);}
+::-webkit-scrollbar-thumb{background:var(--black);border-radius:0;}
 
-/* ── Background ── */
-body::before{
-  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 60% 40% at 15% 0%, rgba(180,79,255,0.18) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 35% at 90% 100%, rgba(255,45,120,0.15) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 80% 10%, rgba(0,229,255,0.10) 0%, transparent 55%);
-}
-body::after{
-  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-  background-image:
-    linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);
-  background-size:40px 40px;
-}
+input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.6;}
 
 /* ── Layout ── */
-#app{position:relative;z-index:1;max-width:740px;margin:0 auto;padding:24px 16px 80px;}
+#app{
+  max-width:720px;margin:0 auto;
+  padding:24px 16px 80px;
+  position:relative;
+}
 
 /* ── Header ── */
-#header{margin-bottom:28px;}
-.header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+#header{
+  background:var(--yellow);
+  border:var(--border);
+  box-shadow:var(--shadow-lg);
+  padding:18px 20px;
+  margin-bottom:20px;
+  display:flex;justify-content:space-between;align-items:center;
+  gap:12px;
+}
 h1{
-  font-family:'Orbitron',monospace;font-size:clamp(20px,5vw,28px);font-weight:900;
-  letter-spacing:3px;line-height:1;
-  background:linear-gradient(90deg,var(--cyan),var(--purple),var(--pink));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  filter:drop-shadow(0 0 20px rgba(0,229,255,0.4));
+  font-family:'Space Mono',monospace;
+  font-size:clamp(18px,4vw,26px);
+  font-weight:700;
+  letter-spacing:-0.5px;
+  line-height:1;
+  text-transform:uppercase;
 }
-.header-meta{font-size:13px;color:var(--muted);letter-spacing:1px;font-weight:500;margin-top:6px;}
-.clock-col{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
-#clock{font-family:'Orbitron',monospace;font-size:13px;color:var(--cyan);letter-spacing:2px;opacity:0.7;}
+.header-right{text-align:right;flex-shrink:0;}
+#clock{
+  font-family:'Space Mono',monospace;
+  font-size:13px;font-weight:700;
+  letter-spacing:1px;margin-bottom:5px;
+}
 #sync-status{
-  font-size:11px;letter-spacing:1px;padding:3px 10px;font-weight:600;
-  border:1px solid var(--border);border-radius:20px;color:var(--muted);
-  background:var(--glass);backdrop-filter:blur(8px);
-  transition:all 0.3s;white-space:nowrap;
+  font-family:'Space Mono',monospace;
+  font-size:10px;font-weight:700;letter-spacing:1px;
+  padding:3px 8px;
+  border:2px solid var(--black);
+  background:var(--white);
+  display:inline-block;
+  text-transform:uppercase;
 }
-#sync-status.syncing{color:var(--warn);border-color:rgba(255,204,0,0.4);box-shadow:0 0 10px rgba(255,204,0,0.2);}
-#sync-status.ok{color:var(--success);border-color:rgba(0,255,170,0.4);box-shadow:0 0 10px rgba(0,255,170,0.2);}
-#sync-status.err{color:var(--err);border-color:rgba(255,51,85,0.4);box-shadow:0 0 10px rgba(255,51,85,0.2);}
+#sync-status.syncing{background:var(--orange);color:var(--white);}
+#sync-status.ok{background:var(--lime);color:var(--black);}
+#sync-status.err{background:var(--red);color:var(--white);}
 @keyframes spin{to{transform:rotate(360deg);}}
-#sync-spinner{display:none;width:9px;height:9px;border:2px solid transparent;border-top-color:var(--warn);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px;}
+#sync-spinner{display:none;width:8px;height:8px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:3px;}
 #sync-status.syncing #sync-spinner{display:inline-block;}
+.header-sub{font-size:12px;font-weight:600;margin-top:4px;opacity:0.7;letter-spacing:0.3px;}
 
-/* ── Glass card ── */
+/* ── Cards ── */
 .card{
-  background:var(--glass);
-  border:1px solid var(--border);
-  border-radius:16px;
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  box-shadow:0 4px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.06);
+  background:var(--white);
+  border:var(--border);
+  box-shadow:var(--shadow-lg);
   margin-bottom:16px;
   overflow:hidden;
 }
-.card-header{
-  padding:12px 18px;
-  border-bottom:1px solid var(--border);
-  font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;
-  color:var(--cyan);font-weight:600;
-  display:flex;align-items:center;gap:8px;
+.card-label{
+  background:var(--black);
+  color:var(--yellow);
+  font-family:'Space Mono',monospace;
+  font-size:11px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;
+  padding:6px 14px;
 }
-.card-header::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
 
-/* ── Form inputs ── */
-input[type="text"],input[type="date"],textarea,select{
-  background:transparent;border:none;outline:none;
-  color:var(--text);font-family:'Rajdhani',sans-serif;font-size:16px;
-  font-weight:500;width:100%;
-}
-input::placeholder,textarea::placeholder{color:var(--muted);}
-input[type="date"]{color:var(--muted);width:auto;}
-input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1) saturate(3) hue-rotate(160deg);cursor:pointer;}
-
+/* ── Form ── */
 .form-title-row{
   display:flex;align-items:center;gap:10px;
-  padding:14px 18px;border-bottom:1px solid var(--border);
+  padding:14px 16px;
+  border-bottom:2px solid var(--black);
 }
-.form-title-row input{font-size:17px;font-weight:600;letter-spacing:0.3px;}
-.form-prompt{color:var(--pink);font-family:'Orbitron',monospace;font-size:14px;font-weight:700;flex-shrink:0;}
+.form-prompt{
+  font-family:'Space Mono',monospace;font-size:18px;font-weight:700;
+  color:var(--black);flex-shrink:0;line-height:1;
+}
+.form-title-row input{
+  background:transparent;border:none;outline:none;
+  font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;
+  color:var(--black);width:100%;
+}
+.form-title-row input::placeholder{color:#999;font-weight:400;}
 
-.form-meta{display:flex;align-items:center;gap:10px;padding:10px 18px;flex-wrap:wrap;}
-
+.form-meta{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;flex-wrap:wrap;
+  border-bottom:2px solid var(--black);
+  background:#f5f5ee;
+}
 .form-select{
-  background:rgba(0,229,255,0.06);
-  border:1px solid var(--border);
-  border-radius:8px;padding:6px 10px;
-  color:var(--cyan);font-family:'Rajdhani',sans-serif;
-  font-size:14px;font-weight:600;letter-spacing:0.5px;
-  cursor:pointer;outline:none;
+  background:var(--white);
+  border:2px solid var(--black);
+  font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;
+  padding:5px 8px;outline:none;cursor:pointer;color:var(--black);
+  box-shadow:2px 2px 0 var(--black);
 }
-.form-select option{background:#080b1a;color:var(--text);}
-
-.due-label{font-size:12px;color:var(--muted);letter-spacing:1px;font-weight:600;white-space:nowrap;}
-.date-wrap{display:flex;align-items:center;gap:6px;background:rgba(180,79,255,0.06);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;}
-.date-wrap input[type="date"]{font-size:13px;font-weight:600;color:var(--purple);}
-
-.form-note-area{
-  padding:0 18px 14px;display:none;
+.form-select option{background:var(--white);}
+.date-wrap{
+  display:flex;align-items:center;gap:6px;
+  border:2px solid var(--black);padding:5px 8px;
+  background:var(--white);box-shadow:2px 2px 0 var(--black);
 }
+.due-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+.date-wrap input[type="date"]{
+  background:transparent;border:none;outline:none;
+  font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;
+  color:var(--black);
+}
+.form-note-area{padding:0;display:none;}
 .form-note-area textarea{
-  background:rgba(255,255,255,0.03);border:1px solid var(--border);
-  border-radius:10px;padding:10px 12px;min-height:68px;resize:vertical;
-  font-size:14px;color:var(--muted);line-height:1.6;
+  width:100%;border:none;border-top:2px solid var(--black);
+  padding:12px 16px;min-height:72px;resize:vertical;
+  font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:500;
+  color:var(--black);background:#f9f9f4;outline:none;line-height:1.6;
+  display:block;
 }
+.form-note-area textarea::placeholder{color:#aaa;}
 
 /* ── Buttons ── */
 .btn{
-  display:inline-flex;align-items:center;gap:5px;
-  font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;
-  letter-spacing:1px;padding:6px 14px;border-radius:8px;cursor:pointer;
-  border:1px solid var(--border);background:var(--glass);color:var(--muted);
-  transition:all 0.18s;white-space:nowrap;
+  font-family:'Space Mono',monospace;font-size:12px;font-weight:700;
+  letter-spacing:0.5px;text-transform:uppercase;
+  padding:7px 14px;cursor:pointer;
+  border:2px solid var(--black);background:var(--white);color:var(--black);
+  box-shadow:2px 2px 0 var(--black);
+  transition:transform 0.08s,box-shadow 0.08s;
+  white-space:nowrap;display:inline-block;
 }
-.btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.08);box-shadow:0 0 12px rgba(0,229,255,0.15);}
-.btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.1);box-shadow:0 0 14px rgba(0,229,255,0.2);}
-.btn-primary{
-  background:linear-gradient(135deg,rgba(255,45,120,0.3),rgba(180,79,255,0.3));
-  border-color:var(--pink);color:#fff;font-size:14px;padding:8px 20px;
-  box-shadow:0 0 20px rgba(255,45,120,0.25);
-}
-.btn-primary:hover{box-shadow:0 0 30px rgba(255,45,120,0.45);border-color:#ff6ea0;color:#fff;}
-.btn-danger{border-color:rgba(255,51,85,0.4);color:var(--err);}
-.btn-danger:hover{border-color:var(--err);background:rgba(255,51,85,0.1);box-shadow:0 0 12px rgba(255,51,85,0.2);}
-.btn-danger.armed{border-color:var(--err);background:rgba(255,51,85,0.15);color:var(--err);box-shadow:0 0 16px rgba(255,51,85,0.3);animation:pulse-danger .5s ease;}
-@keyframes pulse-danger{0%,100%{opacity:1;}50%{opacity:0.6;}}
-.btn-success{border-color:rgba(0,255,170,0.4);color:var(--success);}
-.btn-success:hover{border-color:var(--success);background:rgba(0,255,170,0.08);box-shadow:0 0 12px rgba(0,255,170,0.2);}
-.btn-note{border-color:rgba(180,79,255,0.4);color:var(--purple);}
-.btn-note:hover{border-color:var(--purple);background:rgba(180,79,255,0.1);box-shadow:0 0 12px rgba(180,79,255,0.2);}
-.btn-sm{font-size:12px;padding:4px 10px;}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--black);}
+.btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--black);}
+.btn.active{background:var(--black);color:var(--yellow);}
+.btn-primary{background:var(--yellow);color:var(--black);border-color:var(--black);}
+.btn-primary:hover{background:#ffd700;}
+.btn-danger{border-color:var(--red);color:var(--red);}
+.btn-danger:active{background:var(--red);color:var(--white);}
+.btn-danger.armed{background:var(--red);color:var(--white);animation:pulse-arm .4s ease;}
+@keyframes pulse-arm{0%,100%{opacity:1;}50%{opacity:.7;}}
+.btn-success{border-color:var(--blue);color:var(--blue);}
+.btn-note{border-color:var(--blue);color:var(--blue);}
+.btn-note.active{background:var(--blue);color:var(--white);}
+.btn-sm{font-size:11px;padding:5px 10px;}
 
 /* ── Toolbar ── */
-#toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
-.toolbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-#cat-filter-select{
-  background:var(--glass);border:1px solid var(--border2);border-radius:8px;
-  color:var(--purple);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;
-  letter-spacing:0.5px;padding:6px 10px;cursor:pointer;outline:none;
+#toolbar{
+  display:flex;gap:8px;margin-bottom:14px;
+  flex-wrap:wrap;align-items:center;
 }
-#cat-filter-select option{background:#080b1a;color:var(--text);}
+.toolbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+#cat-filter-select{
+  background:var(--white);border:2px solid var(--black);
+  font-family:'Space Mono',monospace;font-size:11px;font-weight:700;
+  padding:5px 8px;outline:none;cursor:pointer;color:var(--black);
+  box-shadow:2px 2px 0 var(--black);text-transform:uppercase;letter-spacing:0.5px;
+}
+#cat-filter-select option{background:var(--white);}
 
 /* ── Task list ── */
 #task-list-wrap{
-  background:var(--glass);
-  border:1px solid var(--border);
-  border-radius:16px;
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  box-shadow:0 4px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.06);
+  background:var(--white);
+  border:var(--border);
+  box-shadow:var(--shadow-lg);
   overflow:hidden;
 }
 .list-header{
   display:grid;grid-template-columns:20px 28px 1fr auto;
-  gap:10px;padding:10px 18px;
-  border-bottom:1px solid var(--border);
-  font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;
-  color:var(--muted);
+  gap:10px;padding:8px 16px;
+  background:var(--black);
+  font-family:'Space Mono',monospace;font-size:10px;font-weight:700;
+  letter-spacing:2px;color:var(--yellow);text-transform:uppercase;
 }
 
 /* ── Task rows ── */
 .task-row{
   display:grid;grid-template-columns:20px 28px 1fr auto;
-  gap:10px;padding:14px 18px;
-  border-bottom:1px solid rgba(255,255,255,0.04);
-  align-items:start;transition:background 0.15s;
-  position:relative;
+  gap:10px;padding:14px 16px;
+  border-bottom:2px solid var(--black);
+  align-items:start;transition:background 0.1s;
+  position:relative;background:var(--white);
 }
 .task-row:last-child{border-bottom:none;}
-.task-row:hover{background:rgba(255,255,255,0.03);}
+.task-row:nth-child(even){background:#f7f7f0;}
+.task-row:hover{background:#fffbe6;}
 .task-row:hover .task-actions{opacity:1;}
-.task-row.drag-over{border-top:2px solid var(--cyan);box-shadow:inset 0 2px 0 rgba(0,229,255,0.3);}
+.task-row.drag-over{border-top:3px solid var(--blue);background:#eeeeff;}
 .task-row.dragging{opacity:0.3;}
 
 /* Drag handle */
 .drag-handle{
-  cursor:grab;color:var(--muted);font-size:15px;padding-top:3px;
+  cursor:grab;color:#bbb;font-size:16px;padding-top:3px;
   user-select:none;flex-shrink:0;line-height:1;touch-action:none;
-  transition:color 0.15s;
+  font-family:'Space Mono',monospace;font-weight:700;
+  transition:color 0.1s;
 }
-.drag-handle:hover{color:var(--cyan);}
+.drag-handle:hover{color:var(--black);}
 .drag-handle:active{cursor:grabbing;}
 
 /* Checkbox */
 .check-box{
-  width:22px;height:22px;border-radius:6px;flex-shrink:0;margin-top:1px;
-  border:2px solid var(--border2);background:transparent;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all 0.18s;
+  width:22px;height:22px;flex-shrink:0;margin-top:2px;
+  border:3px solid var(--black);background:var(--white);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.1s;box-shadow:2px 2px 0 var(--black);
 }
-.check-box:hover{border-color:var(--pink);box-shadow:0 0 10px rgba(255,45,120,0.3);}
-.check-box.checked{background:linear-gradient(135deg,var(--pink),var(--purple));border-color:transparent;box-shadow:0 0 12px rgba(255,45,120,0.4);}
-.check-box.checked::after{content:'✓';color:#fff;font-size:13px;font-weight:700;line-height:1;}
+.check-box:hover{background:var(--lime);transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--black);}
+.check-box.checked{background:var(--black);box-shadow:2px 2px 0 #555;}
+.check-box.checked::after{content:'✓';color:var(--yellow);font-size:13px;font-weight:900;font-family:'Space Mono',monospace;line-height:1;}
 
 /* Task content */
 .task-title{
-  font-size:16px;font-weight:600;color:var(--text);
-  line-height:1.3;margin-bottom:5px;letter-spacing:0.2px;
-  cursor:pointer;transition:color 0.15s;
+  font-size:15px;font-weight:600;color:var(--black);
+  line-height:1.3;margin-bottom:5px;cursor:pointer;
+  transition:color 0.1s;
 }
-.task-title:hover{color:var(--cyan);}
-.task-title.done{text-decoration:line-through;color:var(--muted);}
+.task-title:hover{color:var(--blue);text-decoration:underline;}
+.task-title.done{text-decoration:line-through;color:#aaa;font-weight:400;}
 .task-title-input{
-  font-size:16px;font-weight:600;color:var(--cyan);
-  background:transparent;border:none;border-bottom:1px solid var(--cyan);
-  outline:none;width:100%;margin-bottom:5px;font-family:'Rajdhani',sans-serif;
-  letter-spacing:0.2px;padding-bottom:2px;
+  font-size:15px;font-weight:700;color:var(--black);
+  background:var(--yellow);border:2px solid var(--black);
+  outline:none;width:100%;margin-bottom:5px;
+  font-family:'Space Grotesk',sans-serif;padding:2px 6px;
+  box-shadow:2px 2px 0 var(--black);
 }
 
-.task-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.task-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:2px;}
 .tag{
-  font-size:11px;font-weight:700;letter-spacing:1px;
-  padding:2px 8px;border-radius:20px;
-  background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);color:var(--cyan);
+  font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  padding:2px 7px;
+  background:var(--black);color:var(--white);
+  font-family:'Space Mono',monospace;
 }
-.due{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:0.5px;}
-.due.overdue{color:var(--err);text-shadow:0 0 8px rgba(255,51,85,0.4);}
-.due.soon{color:var(--warn);text-shadow:0 0 8px rgba(255,204,0,0.3);}
+.due{font-size:12px;font-weight:700;color:#888;font-family:'Space Mono',monospace;letter-spacing:0.3px;}
+.due.overdue{color:var(--red);}
+.due.soon{color:var(--orange);}
 
 .note-preview{
-  font-size:13px;color:var(--muted);margin-top:7px;
-  border-left:2px solid var(--border2);padding-left:10px;
+  font-size:13px;color:#666;margin-top:7px;
+  border-left:3px solid var(--black);padding-left:10px;
   line-height:1.5;white-space:pre-wrap;word-break:break-word;
-  font-weight:400;
+  font-weight:400;background:#f5f5ee;padding:6px 10px;
 }
 
 /* Task actions */
 .task-actions{
-  opacity:0;transition:opacity 0.15s;
-  display:flex;gap:5px;align-items:flex-start;padding-top:1px;flex-shrink:0;
+  opacity:0;transition:opacity 0.1s;
+  display:flex;gap:4px;align-items:flex-start;padding-top:1px;flex-shrink:0;
 }
 @media(max-width:600px){.task-actions{opacity:1;}}
 
 .empty-state{
   padding:48px 24px;text-align:center;
-  font-family:'Orbitron',monospace;font-size:13px;letter-spacing:2px;
-  color:var(--muted);
+  font-family:'Space Mono',monospace;font-size:13px;font-weight:700;
+  color:#bbb;letter-spacing:1px;text-transform:uppercase;
 }
-.empty-state::before{content:'◈';display:block;font-size:28px;margin-bottom:12px;opacity:0.3;}
 
 /* ── Modals ── */
 .modal-bg{
   display:none;position:fixed;inset:0;z-index:1000;
-  background:rgba(4,5,15,0.85);backdrop-filter:blur(8px);
+  background:rgba(10,10,10,0.7);
   align-items:center;justify-content:center;padding:16px;
 }
 .modal-bg.open{display:flex;}
 .modal{
-  background:linear-gradient(135deg,rgba(8,11,26,0.95),rgba(12,8,28,0.95));
-  border:1px solid var(--border2);border-radius:20px;
+  background:var(--white);
+  border:var(--border);
+  box-shadow:8px 8px 0 var(--black);
   padding:28px;width:min(520px,100%);
-  box-shadow:0 0 60px rgba(180,79,255,0.2),0 24px 64px rgba(0,0,0,0.6);
   max-height:90vh;overflow-y:auto;
 }
 .modal-title{
-  font-family:'Orbitron',monospace;font-size:14px;font-weight:700;
-  letter-spacing:2px;color:var(--cyan);margin-bottom:20px;
-  padding-bottom:14px;border-bottom:1px solid var(--border);
+  font-family:'Space Mono',monospace;font-size:14px;font-weight:700;
+  text-transform:uppercase;letter-spacing:2px;
+  margin-bottom:20px;padding-bottom:14px;
+  border-bottom:3px solid var(--black);
   display:flex;align-items:center;gap:10px;
 }
-.modal-title::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);flex-shrink:0;}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+.modal-title::before{content:'';width:12px;height:12px;background:var(--yellow);border:2px solid var(--black);flex-shrink:0;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:2px solid var(--black);}
 
-/* Modal inputs */
 .modal input[type="text"]{
-  width:100%;background:rgba(255,255,255,0.04);
-  border:1px solid var(--border);border-radius:10px;
-  padding:10px 14px;color:var(--text);font-family:'Rajdhani',sans-serif;
-  font-size:15px;font-weight:500;outline:none;
-  transition:border-color 0.18s;
+  width:100%;background:var(--white);
+  border:2px solid var(--black);
+  padding:10px 12px;color:var(--black);
+  font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;
+  outline:none;box-shadow:2px 2px 0 var(--black);
+  transition:box-shadow 0.1s;margin-bottom:0;
 }
-.modal input[type="text"]:focus{border-color:var(--cyan);}
-.modal input::placeholder{color:var(--muted);}
+.modal input[type="text"]:focus{box-shadow:3px 3px 0 var(--black);}
+.modal input::placeholder{color:#bbb;font-weight:400;}
 .modal textarea{
-  width:100%;background:rgba(255,255,255,0.04);
-  border:1px solid var(--border);border-radius:10px;
-  padding:12px 14px;color:var(--text);font-family:'Rajdhani',sans-serif;
-  font-size:14px;font-weight:500;outline:none;
-  min-height:130px;resize:vertical;line-height:1.6;display:block;
-  transition:border-color 0.18s;
+  width:100%;background:var(--white);
+  border:2px solid var(--black);
+  padding:12px;color:var(--black);
+  font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:500;
+  outline:none;min-height:130px;resize:vertical;line-height:1.6;
+  display:block;box-shadow:2px 2px 0 var(--black);
 }
-.modal textarea:focus{border-color:var(--purple);}
-.modal textarea::placeholder{color:var(--muted);}
+.modal textarea:focus{box-shadow:3px 3px 0 var(--black);}
+.modal textarea::placeholder{color:#bbb;font-weight:400;}
 .modal-input-row{display:flex;gap:8px;margin-bottom:14px;}
 .modal-input-row input{flex:1;}
 
-/* Cat list in modal */
 #cat-list{max-height:200px;overflow-y:auto;margin-bottom:16px;}
 .cat-item{
   display:flex;justify-content:space-between;align-items:center;
-  padding:8px 0;border-bottom:1px solid var(--border);
-  font-size:14px;font-weight:600;color:var(--text);letter-spacing:0.5px;
+  padding:10px 0;border-bottom:2px solid #eee;
+  font-size:14px;font-weight:700;color:var(--black);
+  font-family:'Space Mono',monospace;letter-spacing:0.5px;text-transform:uppercase;
 }
 .cat-item:last-child{border-bottom:none;}
 
-/* Note modal subtitle */
 #note-modal-subtitle{
-  font-size:13px;color:var(--muted);letter-spacing:0.5px;
-  margin-bottom:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font-weight:500;
+  font-size:13px;color:#666;margin-bottom:14px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-weight:600;font-family:'Space Mono',monospace;
+  padding:6px 10px;background:#f5f5ee;border-left:3px solid var(--black);
 }
+.modal textarea{margin-bottom:0;}
 
 /* IO modal */
 #io-status{
-  font-size:13px;letter-spacing:0.5px;padding:10px 14px;
-  border-radius:8px;margin-bottom:14px;font-weight:600;display:none;
+  font-size:13px;font-weight:700;padding:10px 14px;
+  margin-bottom:14px;border:2px solid var(--black);
+  font-family:'Space Mono',monospace;display:none;
 }
-#io-status.ok{background:rgba(0,255,170,0.08);border:1px solid rgba(0,255,170,0.3);color:var(--success);display:block;}
-#io-status.err{background:rgba(255,51,85,0.08);border:1px solid rgba(255,51,85,0.3);color:var(--err);display:block;}
-.io-section{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
-.io-section-title{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;}
-.io-section p{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6;font-weight:400;}
+#io-status.ok{background:var(--lime);color:var(--black);display:block;}
+#io-status.err{background:var(--red);color:var(--white);display:block;}
+.io-section{border:2px solid var(--black);padding:16px;margin-bottom:14px;box-shadow:3px 3px 0 var(--black);}
+.io-section-title{
+  font-family:'Space Mono',monospace;font-size:11px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;
+  padding-bottom:8px;border-bottom:2px solid var(--black);
+}
+.io-section p{font-size:13px;color:#666;margin-bottom:12px;line-height:1.6;}
 #import-file-label{
-  display:inline-block;border:1px solid var(--border2);border-radius:8px;
-  color:var(--purple);padding:6px 14px;cursor:pointer;
-  font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;
-  letter-spacing:0.5px;transition:all 0.18s;
+  display:inline-block;border:2px solid var(--black);background:var(--white);
+  color:var(--black);padding:6px 14px;cursor:pointer;
+  font-family:'Space Mono',monospace;font-size:11px;font-weight:700;
+  letter-spacing:0.5px;text-transform:uppercase;box-shadow:2px 2px 0 var(--black);
+  transition:all 0.08s;
 }
-#import-file-label:hover{border-color:var(--purple);background:rgba(180,79,255,0.08);box-shadow:0 0 12px rgba(180,79,255,0.2);}
+#import-file-label:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--black);}
 #import-file{display:none;}
-#import-filename{font-size:12px;color:var(--muted);margin-top:8px;letter-spacing:0.5px;}
+#import-filename{font-size:12px;color:#888;margin-top:8px;font-family:'Space Mono',monospace;}
 
-/* Footer */
-#footer{margin-top:16px;font-size:12px;color:var(--muted);letter-spacing:0.5px;text-align:center;opacity:0.6;}
+#footer{
+  margin-top:16px;font-size:11px;color:#aaa;text-align:center;
+  font-family:'Space Mono',monospace;letter-spacing:0.5px;
+}
 </style>
 </head>
 <body>
@@ -363,21 +392,19 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1
 
   <!-- Header -->
   <div id="header">
-    <div class="header-top">
-      <div>
-        <h1>TASK MANAGER</h1>
-        <div class="header-meta" id="header-sub">JAY WARREN &nbsp;·&nbsp; 0 OPEN &nbsp;·&nbsp; 0 ARCHIVED</div>
-      </div>
-      <div class="clock-col">
-        <div id="clock">00:00:00</div>
-        <div id="sync-status"><span id="sync-spinner"></span><span id="sync-text">OFFLINE</span></div>
-      </div>
+    <div>
+      <h1>Task Manager</h1>
+      <div class="header-sub" id="header-sub">Jay Warren &nbsp;·&nbsp; 0 open &nbsp;·&nbsp; 0 archived</div>
+    </div>
+    <div class="header-right">
+      <div id="clock">00:00:00</div>
+      <div id="sync-status"><span id="sync-spinner"></span><span id="sync-text">OFFLINE</span></div>
     </div>
   </div>
 
   <!-- Add Task -->
   <div class="card">
-    <div class="card-header">NEW TASK</div>
+    <div class="card-label">+ New Task</div>
     <div class="form-title-row">
       <span class="form-prompt">›</span>
       <input type="text" id="new-title" placeholder="What needs to get done?" autocomplete="off"/>
@@ -385,11 +412,11 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1
     <div class="form-meta">
       <select class="form-select" id="new-cat"></select>
       <div class="date-wrap">
-        <span class="due-label">DUE DATE</span>
+        <span class="due-label">Due Date</span>
         <input type="date" id="new-due"/>
       </div>
-      <button class="btn btn-note btn-sm" id="toggle-note-btn" onclick="toggleNoteField()">+ NOTE</button>
-      <button class="btn btn-primary btn-sm" onclick="addTask()" style="margin-left:auto;">ADD TASK</button>
+      <button class="btn btn-note btn-sm" id="toggle-note-btn" onclick="toggleNoteField()">+ Note</button>
+      <button class="btn btn-primary btn-sm" onclick="addTask()" style="margin-left:auto;">Add Task →</button>
     </div>
     <div class="form-note-area" id="form-note-area">
       <textarea id="new-note" placeholder="Add notes..."></textarea>
@@ -398,10 +425,10 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1
 
   <!-- Toolbar -->
   <div id="toolbar">
-    <button class="btn active" id="btn-active" onclick="switchView('active')">TASKS</button>
-    <button class="btn" id="btn-archived" onclick="switchView('archived')">ARCHIVE</button>
-    <button class="btn btn-sm" onclick="openCatMgr()" style="color:var(--purple);border-color:var(--border2);">CATEGORIES</button>
-    <button class="btn btn-sm" onclick="openIOMgr()" style="color:var(--muted);">DATA</button>
+    <button class="btn active" id="btn-active" onclick="switchView('active')">Tasks</button>
+    <button class="btn" id="btn-archived" onclick="switchView('archived')">Archive</button>
+    <button class="btn btn-sm btn-note" onclick="openCatMgr()">Categories</button>
+    <button class="btn btn-sm" onclick="openIOMgr()">Data</button>
     <div class="toolbar-right">
       <div id="cat-filters"></div>
     </div>
@@ -410,26 +437,26 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1
   <!-- Task List -->
   <div id="task-list-wrap">
     <div class="list-header">
-      <span>≡</span><span>✓</span><span>TASK</span><span>ACTIONS</span>
+      <span>≡</span><span>✓</span><span>Task</span><span>Actions</span>
     </div>
     <div id="task-list"></div>
   </div>
 
-  <div id="footer">Tap title to edit · Drag ≡ to reorder · Check ✓ to archive</div>
+  <div id="footer">Click title to edit &nbsp;·&nbsp; Drag ≡ to reorder &nbsp;·&nbsp; Check ✓ to archive</div>
 </div>
 
 <!-- Category Manager -->
 <div class="modal-bg" id="cat-modal">
   <div class="modal">
-    <div class="modal-title">MANAGE CATEGORIES</div>
+    <div class="modal-title">Manage Categories</div>
     <div id="cat-list"></div>
     <div class="modal-input-row">
       <input type="text" id="new-cat-input" placeholder="New category name..."/>
-      <button class="btn btn-sm active" onclick="addCat()">ADD</button>
+      <button class="btn btn-primary btn-sm" onclick="addCat()">Add</button>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-sm" onclick="closeCatMgr()">CANCEL</button>
-      <button class="btn btn-primary btn-sm" onclick="saveCats()">SAVE</button>
+      <button class="btn btn-sm" onclick="closeCatMgr()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCats()">Save →</button>
     </div>
   </div>
 </div>
@@ -437,12 +464,12 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1
 <!-- Note Modal -->
 <div class="modal-bg" id="note-modal">
   <div class="modal">
-    <div class="modal-title">EDIT NOTE</div>
+    <div class="modal-title">Edit Note</div>
     <div id="note-modal-subtitle"></div>
-    <textarea id="note-modal-text" placeholder="Add notes..."></textarea>
+    <textarea id="note-modal-text" placeholder="Add notes..." style="margin-top:12px;"></textarea>
     <div class="modal-actions">
-      <button class="btn btn-sm" onclick="closeNoteModal()">CANCEL</button>
-      <button class="btn btn-primary btn-sm" onclick="saveNote()">SAVE NOTE</button>
+      <button class="btn btn-sm" onclick="closeNoteModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveNote()">Save Note →</button>
     </div>
   </div>
 </div>
@@ -450,25 +477,25 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1
 <!-- Import/Export Modal -->
 <div class="modal-bg" id="io-modal">
   <div class="modal">
-    <div class="modal-title">DATA &amp; BACKUP</div>
+    <div class="modal-title">Data &amp; Backup</div>
     <div id="io-status"></div>
     <div class="io-section">
-      <div class="io-section-title">EXPORT</div>
+      <div class="io-section-title">Export</div>
       <p>Download all tasks, archive, and categories as a JSON backup file.</p>
-      <button class="btn btn-primary btn-sm" onclick="exportData()">EXPORT BACKUP</button>
+      <button class="btn btn-primary btn-sm" onclick="exportData()">Export Backup →</button>
     </div>
     <div class="io-section">
-      <div class="io-section-title">IMPORT</div>
+      <div class="io-section-title">Import</div>
       <p>Load a previously exported file. This will overwrite all current data.</p>
-      <label id="import-file-label" for="import-file">SELECT FILE</label>
+      <label id="import-file-label" for="import-file">Select File</label>
       <input type="file" id="import-file" accept=".json" onchange="handleImportFile(event)"/>
       <div id="import-filename">No file selected</div>
       <div style="margin-top:12px;">
-        <button class="btn btn-danger btn-sm" id="import-confirm-btn" onclick="confirmImport()" style="display:none;">CONFIRM IMPORT — OVERWRITES DATA</button>
+        <button class="btn btn-danger btn-sm" id="import-confirm-btn" onclick="confirmImport()" style="display:none;">Confirm Import — Overwrites Data</button>
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-sm" onclick="closeIOMgr()">CLOSE</button>
+      <button class="btn btn-sm" onclick="closeIOMgr()">Close</button>
     </div>
   </div>
 </div>
@@ -486,8 +513,7 @@ let tasks=[], archived=[], cats=[
 ];
 let view='active',filterCat='all',noteTargetId=null,tempCats=[],noteFieldOpen=false;
 let pendingImport=null,syncTimer=null,dragSrcId=null,touchDropId=null;
-let deleteConfirmId=null,deleteConfirmTimer=null;
-let editingTaskId=null;
+let deleteConfirmId=null,deleteConfirmTimer=null,editingTaskId=null;
 
 // ── Local storage ───────────────────────────────────────────────────────────
 const loadLocal=()=>{
@@ -548,7 +574,7 @@ const render=()=>{ renderHeader();renderCatSelect();renderCatFilters();renderVie
 
 const renderHeader=()=>{
   const open=tasks.filter(t=>!t.done).length;
-  document.getElementById('header-sub').innerHTML=`JAY WARREN &nbsp;·&nbsp; ${open} OPEN &nbsp;·&nbsp; ${archived.length} ARCHIVED`;
+  document.getElementById('header-sub').innerHTML=`Jay Warren &nbsp;·&nbsp; ${open} open &nbsp;·&nbsp; ${archived.length} archived`;
 };
 const renderCatSelect=()=>{
   const sel=document.getElementById('new-cat'),cur=sel.value;
@@ -562,8 +588,8 @@ const renderCatFilters=()=>{
     </select>`;
 };
 const renderViewButtons=()=>{
-  document.getElementById('btn-active').textContent=`TASKS (${tasks.length})`;
-  document.getElementById('btn-archived').textContent=`ARCHIVE (${archived.length})`;
+  document.getElementById('btn-active').textContent=`Tasks (${tasks.length})`;
+  document.getElementById('btn-archived').textContent=`Archive (${archived.length})`;
   document.getElementById('btn-active').className='btn'+(view==='active'?' active':'');
   document.getElementById('btn-archived').className='btn'+(view==='archived'?' active':'');
 };
@@ -576,13 +602,11 @@ const renderList=()=>{
       if(a.done!==b.done) return a.done?1:-1;
       const aH=!!a.dueDate,bH=!!b.dueDate;
       if(aH&&bH) return new Date(a.dueDate)-new Date(b.dueDate);
-      if(aH&&!bH) return -1;
-      if(!aH&&bH) return 1;
-      return 0;
+      if(aH&&!bH) return -1; if(!aH&&bH) return 1; return 0;
     });
   }
   if(!filtered.length){
-    listEl.innerHTML=`<div class="empty-state">${view==='active'?'No tasks yet. Add one above.':'Archive is empty.'}</div>`;
+    listEl.innerHTML=`<div class="empty-state">${view==='active'?'No tasks yet — add one above':'Archive is empty'}</div>`;
     return;
   }
   listEl.innerHTML=filtered.map(t=>taskRowHTML(t)).join('');
@@ -598,9 +622,12 @@ const taskRowHTML=(t)=>{
   const preview=notePreview(t.note);
   const draggable=view==='active'?'draggable="true"':'';
   const handle=view==='active'?`<div class="drag-handle" title="Drag to reorder">≡</div>`:`<div></div>`;
-  const archBtn=view==='archived'?`<button class="btn btn-success btn-sm" onclick="unarchiveTask('${t.id}')">RESTORE</button>`:'';
+  const archBtn=view==='archived'?`<button class="btn btn-success btn-sm" onclick="unarchiveTask('${t.id}')">Restore</button>`:'';
 
-  return `<div class="task-row" id="row-${t.id}" ${draggable} data-id="${t.id}">
+  // Overdue rows get a red left accent
+  const rowStyle=over?'border-left:4px solid #ff3333;':done?'':'';
+
+  return `<div class="task-row" id="row-${t.id}" ${draggable} data-id="${t.id}" style="${rowStyle}">
     ${handle}
     <div class="check-box${t.done?' checked':''}"
       onclick="${view==='active'?`archiveTask('${t.id}')`:`unarchiveTask('${t.id}')`}"
@@ -614,9 +641,9 @@ const taskRowHTML=(t)=>{
       ${preview?`<div class="note-preview">${esc(preview)}</div>`:''}
     </div>
     <div class="task-actions">
-      <button class="btn btn-note btn-sm" onclick="openNoteModal('${t.id}')">NOTE</button>
+      <button class="btn btn-note btn-sm" onclick="openNoteModal('${t.id}')">Note</button>
       ${archBtn}
-      <button class="btn btn-danger btn-sm" id="del-${t.id}" onclick="confirmDelete('${t.id}')">DEL</button>
+      <button class="btn btn-danger btn-sm" id="del-${t.id}" onclick="confirmDelete('${t.id}')">Del</button>
     </div>
   </div>`;
 };
@@ -626,60 +653,42 @@ const startEdit=(id)=>{
   if(editingTaskId) cancelEdit(editingTaskId);
   const task=[...tasks,...archived].find(t=>t.id===id); if(!task) return;
   editingTaskId=id;
-  const titleEl=document.querySelector(`#row-${id} .task-title`);
-  if(!titleEl) return;
+  const titleEl=document.querySelector(`#row-${id} .task-title`); if(!titleEl) return;
   const input=document.createElement('input');
-  input.type='text'; input.className='task-title-input';
-  input.value=task.title;
+  input.type='text'; input.className='task-title-input'; input.value=task.title;
   titleEl.replaceWith(input);
   input.focus(); input.select();
   input.addEventListener('keydown',e=>{
-    if(e.key==='Enter'){ e.preventDefault(); commitEdit(id,input.value); }
-    if(e.key==='Escape'){ cancelEdit(id); }
+    if(e.key==='Enter'){e.preventDefault();commitEdit(id,input.value);}
+    if(e.key==='Escape'){cancelEdit(id);}
   });
-  input.addEventListener('blur',()=>{ commitEdit(id,input.value); });
+  input.addEventListener('blur',()=>commitEdit(id,input.value));
 };
-
 const commitEdit=(id,newTitle)=>{
   const trimmed=newTitle.trim();
-  if(trimmed){
-    const up=arr=>arr.map(t=>t.id===id?{...t,title:trimmed}:t);
-    tasks=up(tasks); archived=up(archived);
-    save();
-  }
-  editingTaskId=null;
-  render();
+  if(trimmed){ const up=arr=>arr.map(t=>t.id===id?{...t,title:trimmed}:t); tasks=up(tasks); archived=up(archived); save(); }
+  editingTaskId=null; render();
 };
-
-const cancelEdit=(id)=>{
-  editingTaskId=null;
-  render();
-};
+const cancelEdit=(id)=>{ editingTaskId=null; render(); };
 
 // ── Drag & Drop ─────────────────────────────────────────────────────────────
 const initDragDrop=()=>{
   const list=document.getElementById('task-list');
-  const fresh=list.cloneNode(true);
-  list.parentNode.replaceChild(fresh,list);
+  const fresh=list.cloneNode(true); list.parentNode.replaceChild(fresh,list);
   const el=document.getElementById('task-list');
-
   el.querySelectorAll('.task-row[draggable]').forEach(row=>{
     row.addEventListener('dragstart',e=>{
       if(!e.target.classList.contains('drag-handle')&&!e.target.closest('.drag-handle')){e.preventDefault();return;}
-      dragSrcId=row.dataset.id;
-      setTimeout(()=>row.classList.add('dragging'),0);
-      e.dataTransfer.effectAllowed='move';
-      e.dataTransfer.setData('text/plain',dragSrcId);
+      dragSrcId=row.dataset.id; setTimeout(()=>row.classList.add('dragging'),0);
+      e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',dragSrcId);
     });
     row.addEventListener('dragend',()=>{ row.classList.remove('dragging'); clearDragOver(); });
     row.addEventListener('dragover',e=>{ e.preventDefault(); clearDragOver(); if(row.dataset.id!==dragSrcId) row.classList.add('drag-over'); });
     row.addEventListener('drop',e=>{
       e.preventDefault(); const tgt=row.dataset.id; clearDragOver();
-      if(dragSrcId&&dragSrcId!==tgt) reorderTasks(dragSrcId,tgt);
-      dragSrcId=null;
+      if(dragSrcId&&dragSrcId!==tgt) reorderTasks(dragSrcId,tgt); dragSrcId=null;
     });
   });
-
   el.querySelectorAll('.drag-handle').forEach(handle=>{
     const row=handle.closest('.task-row');
     handle.addEventListener('touchstart',e=>{ dragSrcId=row.dataset.id; row.classList.add('dragging'); e.preventDefault(); },{passive:false});
@@ -701,11 +710,10 @@ const clearDragOver=()=>document.querySelectorAll('.task-row').forEach(r=>r.clas
 const reorderTasks=(srcId,tgtId)=>{
   const si=tasks.findIndex(t=>t.id===srcId),ti=tasks.findIndex(t=>t.id===tgtId);
   if(si===-1||ti===-1) return;
-  const [m]=tasks.splice(si,1); tasks.splice(ti,0,m);
-  save(); render();
+  const [m]=tasks.splice(si,1); tasks.splice(ti,0,m); save(); render();
 };
 
-// ── Task actions ─────────────────────────────────────────────────────────────
+// ── Task Actions ─────────────────────────────────────────────────────────────
 const addTask=()=>{
   const title=document.getElementById('new-title').value.trim(); if(!title) return;
   tasks.unshift({id:genId(),title,category:document.getElementById('new-cat').value,
@@ -739,16 +747,9 @@ const confirmDelete=(id)=>{
   if(deleteConfirmId===id){
     clearTimeout(deleteConfirmTimer); deleteConfirmId=null; deleteTask(id);
   } else {
-    if(deleteConfirmId){
-      const old=document.getElementById('del-'+deleteConfirmId);
-      if(old){old.textContent='DEL';old.classList.remove('armed');}
-    }
-    deleteConfirmId=id; btn.textContent='CONFIRM?'; btn.classList.add('armed');
-    deleteConfirmTimer=setTimeout(()=>{
-      const b=document.getElementById('del-'+id);
-      if(b){b.textContent='DEL';b.classList.remove('armed');}
-      deleteConfirmId=null;
-    },3000);
+    if(deleteConfirmId){ const old=document.getElementById('del-'+deleteConfirmId); if(old){old.textContent='Del';old.classList.remove('armed');} }
+    deleteConfirmId=id; btn.textContent='Sure?'; btn.classList.add('armed');
+    deleteConfirmTimer=setTimeout(()=>{ const b=document.getElementById('del-'+id); if(b){b.textContent='Del';b.classList.remove('armed');} deleteConfirmId=null; },3000);
   }
 };
 const switchView=(v)=>{ view=v; render(); };
@@ -761,7 +762,7 @@ const toggleNoteField=()=>{
   if(noteFieldOpen) document.getElementById('new-note').focus();
 };
 
-// ── Note modal ───────────────────────────────────────────────────────────────
+// ── Note Modal ───────────────────────────────────────────────────────────────
 const openNoteModal=(id)=>{
   const task=[...tasks,...archived].find(t=>t.id===id); if(!task) return;
   noteTargetId=id;
@@ -774,21 +775,36 @@ const closeNoteModal=()=>{ document.getElementById('note-modal').classList.remov
 const saveNote=()=>{
   const note=document.getElementById('note-modal-text').value.trim();
   const up=arr=>arr.map(t=>t.id===noteTargetId?{...t,note}:t);
-  tasks=up(tasks); archived=up(archived);
-  save(); render(); closeNoteModal();
+  tasks=up(tasks); archived=up(archived); save(); render(); closeNoteModal();
 };
 
-// ── Category manager ─────────────────────────────────────────────────────────
+// ── Category Manager ─────────────────────────────────────────────────────────
 const openCatMgr=()=>{ tempCats=cats.map(c=>({...c})); renderCatModalList(); document.getElementById('new-cat-input').value=''; document.getElementById('cat-modal').classList.add('open'); };
 const closeCatMgr=()=>document.getElementById('cat-modal').classList.remove('open');
 const renderCatModalList=()=>{
   const el=document.getElementById('cat-list');
-  if(!tempCats.length){el.innerHTML=`<div style="color:var(--muted);font-size:13px;padding:8px 0;">No categories yet.</div>`;return;}
+  if(!tempCats.length){el.innerHTML=`<div style="color:#aaa;font-size:13px;padding:8px 0;">No categories yet.</div>`;return;}
   el.innerHTML=tempCats.map(c=>`
-    <div class="cat-item">
-      <span>${esc(c.label)}</span>
-      <button class="btn btn-danger btn-sm" onclick="removeTempCat('${c.id}')">REMOVE</button>
+    <div class="cat-item" id="catrow-${c.id}">
+      <input
+        type="text"
+        value="${esc(c.label)}"
+        id="catinput-${c.id}"
+        onchange="renameTempCat('${c.id}', this.value)"
+        onblur="renameTempCat('${c.id}', this.value)"
+        style="flex:1;background:transparent;border:none;border-bottom:2px solid #ccc;outline:none;
+               font-family:'Space Mono',monospace;font-size:13px;font-weight:700;
+               letter-spacing:0.5px;text-transform:uppercase;color:var(--black);
+               padding:2px 4px;transition:border-color 0.1s;margin-right:8px;"
+        onfocus="this.style.borderColor='var(--black)'"
+      />
+      <button class="btn btn-danger btn-sm" onclick="removeTempCat('${c.id}')">Remove</button>
     </div>`).join('');
+};
+const renameTempCat=(id, val)=>{
+  const trimmed = val.trim().toUpperCase();
+  if(!trimmed) return;
+  tempCats = tempCats.map(c => c.id===id ? {...c, label:trimmed} : c);
 };
 const addCat=()=>{
   const val=document.getElementById('new-cat-input').value.trim().toUpperCase(); if(!val) return;
@@ -844,7 +860,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.activeElement.id==='new-cat-input') addCat();
 });
 ['cat-modal','note-modal','io-modal'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',e=>{if(e.target.id===id){closeCatMgr();closeNoteModal();closeIOMgr();}});
+  document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id){closeCatMgr();closeNoteModal();closeIOMgr();} });
 });
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
