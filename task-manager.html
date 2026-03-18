@@ -636,7 +636,7 @@ const taskRowHTML=(t)=>{
       <div class="task-title${t.done?' done':''}" onclick="startEdit('${t.id}')" title="Click to edit">${esc(t.title)}</div>
       <div class="task-meta">
         ${cat?`<span class="tag">${esc(cat.label)}</span>`:''}
-        ${dueStr?`<span class="${dueClass}">${over?'⚠ ':soon?'! ':''}${dueStr}</span>`:''}
+        ${dueStr?`<span class="${dueClass}" onclick="startEditDue('${t.id}')" title="Click to edit due date" style="cursor:pointer;">${over?'⚠ ':soon?'! ':''}${dueStr}</span>`:`<span class="due" onclick="startEditDue('${t.id}')" title="Click to set due date" style="cursor:pointer;color:#ccc;">+ due date</span>`}
       </div>
       ${preview?`<div class="note-preview">${esc(preview)}</div>`:''}
     </div>
@@ -670,6 +670,32 @@ const commitEdit=(id,newTitle)=>{
   editingTaskId=null; render();
 };
 const cancelEdit=(id)=>{ editingTaskId=null; render(); };
+
+// ── Inline Due Date Edit ─────────────────────────────────────────────────────
+const startEditDue=(id)=>{
+  const task=[...tasks,...archived].find(t=>t.id===id); if(!task) return;
+  const spanEl=document.querySelector(`#row-${id} .task-meta .due, #row-${id} .task-meta span[onclick*="startEditDue"]`);
+  if(!spanEl) return;
+  const input=document.createElement('input');
+  input.type='date';
+  input.value=task.dueDate||'';
+  input.style.cssText='font-family:Space Grotesk,sans-serif;font-size:12px;font-weight:700;'+
+    'border:2px solid var(--black);background:var(--yellow);color:var(--black);'+
+    'padding:2px 6px;outline:none;box-shadow:2px 2px 0 var(--black);cursor:pointer;';
+  spanEl.replaceWith(input);
+  input.focus();
+  input.addEventListener('change',()=>commitEditDue(id,input.value));
+  input.addEventListener('blur',()=>commitEditDue(id,input.value));
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){ e.preventDefault(); commitEditDue(id,input.value); }
+    if(e.key==='Escape'){ render(); }
+  });
+};
+const commitEditDue=(id,val)=>{
+  const up=arr=>arr.map(t=>t.id===id?{...t,dueDate:val}:t);
+  tasks=up(tasks); archived=up(archived);
+  save(); render();
+};
 
 // ── Drag & Drop ─────────────────────────────────────────────────────────────
 const initDragDrop=()=>{
