@@ -625,7 +625,7 @@ const taskRowHTML=(t)=>{
   const archBtn=view==='archived'?`<button class="btn btn-success btn-sm" onclick="unarchiveTask('${t.id}')">Restore</button>`:'';
 
   // Overdue rows get a red left accent
-  const rowStyle=over?'border-left:4px solid #ff3333;':done?'':'';
+  const rowStyle=over?'border-left:4px solid #ff3333;':'';
 
   return `<div class="task-row" id="row-${t.id}" ${draggable} data-id="${t.id}" style="${rowStyle}">
     ${handle}
